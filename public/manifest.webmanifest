@@ -1,0 +1,9 @@
+{
+  "name": "TracePG",
+  "short_name": "TracePG",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1d4ed8",
+  "description": "NEET-PG question practice and revision workspace"
+}

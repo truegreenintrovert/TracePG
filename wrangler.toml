@@ -1,0 +1,8 @@
+name = "tracepg"
+compatibility_date = "2026-09-06"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tracepg"
+database_id = "c3288876-06bb-46fb-9214-670f5d683a0b"

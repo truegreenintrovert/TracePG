@@ -1,0 +1,35 @@
+{
+  "name": "tracepg",
+  "private": true,
+  "version": "0.1.0",
+  "author": "Yogesh Kashyap",
+  "description": "TracePG Node.js frontend with React, Tailwind CSS, and a Cloudflare Pages serverless sync layer",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:serverless": "wrangler pages dev dist",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name tracepg",
+    "db:local": "wrangler d1 execute tracepg --local --file=schema.sql",
+    "db:remote": "wrangler d1 execute tracepg --remote --file=schema.sql",
+    "seed:questions": "node scripts/generate-question-seed.mjs",
+    "seed:policies": "node scripts/generate-policy-seed.mjs",
+    "seed:legacy-years": "node scripts/generate-legacy-pyq-migration.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
+    "pdfjs-dist": "^6.3.289",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "read-excel-file": "^9.3.10"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.0.5",
+    "wrangler": "^4.0.0"
+  }
+}

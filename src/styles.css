@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+  body {
+    @apply m-0 bg-slate-50 font-sans antialiased;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  button {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .icon-button {
+    @apply grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-lg text-slate-600 transition hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200;
+  }
+  .nav-item {
+    @apply flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+  }
+  .nav-item-active {
+    @apply bg-brand-600 text-white shadow-lg shadow-blue-200 hover:bg-brand-600 hover:text-white dark:shadow-none;
+  }
+  .mode-button {
+    @apply rounded-lg border border-slate-200 px-2 py-2 text-xs font-semibold text-slate-500 transition hover:border-brand-300 dark:border-slate-700 dark:text-slate-300;
+  }
+  .mode-button-active {
+    @apply border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-900/50 dark:text-blue-200;
+  }
+  .surface-card {
+    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none dark:hover:border-slate-700;
+  }
+  .primary-button {
+    @apply rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-brand-700 dark:shadow-none;
+  }
+  .secondary-button {
+    @apply rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200;
+  }
+  .danger-button {
+    @apply rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-rose-700;
+  }
+  .tag {
+    @apply rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-300;
+  }
+  .tag-blue {
+    @apply bg-blue-50 text-brand-600 dark:bg-brand-900/50 dark:text-blue-200;
+  }
+  .stat-card {
+    @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900 dark:shadow-none;
+  }
+  .stat-card strong {
+    @apply block text-3xl font-black tracking-tight text-slate-950 dark:text-white;
+  }
+  .stat-card span:last-child {
+    @apply mt-1 block text-sm font-medium text-slate-500 dark:text-slate-400;
+  }
+  .field {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:ring-blue-950;
+  }
+}

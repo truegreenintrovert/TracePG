@@ -1,0 +1,45 @@
+export const LEGAL_POLICIES = {
+  privacy: {
+    path: "/privacy",
+    label: "Privacy Policy",
+    title: "Your data, handled responsibly.",
+    intro: "This policy explains what TracePG collects, why we use it, and the choices available to you.",
+    sections: [
+      ["Information we collect", "When you create an account, we may receive your name, email address, authentication provider details, and study progress. We also receive basic technical information needed to keep the service secure and reliable, such as browser, device, and request information."],
+      ["How we use information", "We use account and study data to provide TracePG, sync your progress across devices, personalize your study workspace, protect accounts, troubleshoot issues, and communicate essential service updates. We do not sell your personal information."],
+      ["Service providers", "TracePG may use infrastructure and authentication providers, including Supabase, Cloudflare Pages, Cloudflare D1, and Google when you choose Google sign-in. These providers process data only as needed to provide their services and under their own applicable policies."],
+      ["Storage and retention", "Your account and progress remain stored while your account is active or as needed to provide the service. You may ask us to correct or delete account information through the support channel provided with your TracePG account or purchase."],
+      ["Local storage and cookies", "TracePG may use browser local storage to remember preferences and keep a temporary local copy of study progress. Clearing browser storage can remove that local copy, but synced progress may remain available in your account."],
+      ["Children and changes", "TracePG is not directed to children under 13. We may update this policy when the service changes. The latest version will be posted on this page with its updated date."],
+    ],
+  },
+  terms: {
+    path: "/terms",
+    label: "Terms of Service",
+    title: "Use TracePG fairly and responsibly.",
+    intro: "By using TracePG, you agree to these terms. If you do not agree, please do not use the service.",
+    sections: [
+      ["The service", "TracePG provides study and exam-preparation tools, including question banks, practice tests, progress tracking, analytics, and revision features. Features may change, be suspended, or be discontinued as the product evolves."],
+      ["Educational use only", "TracePG is an educational tool and does not provide medical diagnosis, treatment, professional advice, or a guarantee of examination results. Always verify important information with trusted textbooks, official guidance, or a qualified professional."],
+      ["Your account", "You are responsible for keeping your login details secure and for activity under your account. Information submitted to your account should be accurate and should not impersonate another person."],
+      ["Acceptable use", "Do not misuse the service, attempt unauthorized access, interfere with its operation, scrape protected endpoints, upload malicious content, or use TracePG in a way that violates applicable law or the rights of others."],
+      ["Content and accuracy", "Question content may contain mistakes, omissions, or outdated information. You may use TracePG for personal study, but you should independently verify material before relying on it."],
+      ["Availability and termination", "We aim to keep TracePG available, but uninterrupted access is not guaranteed. We may suspend or terminate access where necessary for security, legal, maintenance, or abuse-prevention reasons."],
+      ["Updates to these terms", "We may revise these terms as TracePG develops. Continued use after an update means you accept the revised terms."],
+    ],
+  },
+  refund: {
+    path: "/refund-policy",
+    label: "Refund Policy",
+    title: "A clear approach to refunds.",
+    intro: "This policy applies to eligible paid TracePG purchases and subscriptions, where offered.",
+    sections: [
+      ["Requesting a refund", "You may request a refund within 7 days of a charge by using the support channel shown in your TracePG account or purchase receipt. Include the account email, transaction date, and a brief reason so the request can be reviewed."],
+      ["Eligible situations", "We generally review duplicate charges, accidental purchases reported promptly, technical issues that prevent reasonable use of a paid feature, and other situations where a refund is required by applicable law."],
+      ["Non-refundable situations", "Refunds may not be available for a request made after the review period, for digital content or features already substantially used, or for an account suspended because of misuse. This does not limit any rights provided by applicable consumer law."],
+      ["Processing", "Approved refunds are sent to the original payment method. Your payment provider may require additional time to show the refund in your account. We may ask for reasonable information to verify a purchase before processing it."],
+      ["Subscriptions", "If recurring subscriptions are offered, canceling stops future renewals but does not automatically refund a previous charge. Any refund request is reviewed under the rules above."],
+      ["Policy updates", "We may update this policy when our products, payment methods, or legal obligations change. The version published on this page is the current version."],
+    ],
+  },
+};

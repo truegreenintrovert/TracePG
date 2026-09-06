@@ -1,0 +1,21 @@
+TracePG PDF upload format
+
+Use selectable text, not a scanned image-only PDF.
+
+1. Write the question text here
+A. Option A
+B. Option B
+C. Option C
+D. Option D
+Answer: A
+Explanation: Add the explanation here.
+
+2. Write the next question here
+A. Option A
+B. Option B
+C. Option C
+D. Option D
+Answer: C
+Explanation: Add the explanation here.
+
+For PYQ uploads, select "PYQ papers" and provide the default year in the admin panel.
