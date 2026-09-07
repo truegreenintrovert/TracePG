@@ -1,4 +1,4 @@
-import { getAuthenticatedUser, hasTraceAccess, json } from "./_shared.js";
+import { getAuthenticatedUser, hasTraceAccess, json, normalizeSubject } from "./_shared.js";
 
 const DATASETS = {
   questions: {
@@ -37,7 +37,7 @@ export async function onRequestGet({ request, env }) {
   }
 
   const result = await env.DB.prepare(
-    `SELECT data FROM ${dataset.table} ORDER BY ${dataset.order} LIMIT ? OFFSET ?`,
+    `SELECT data, subject FROM ${dataset.table} ORDER BY ${dataset.order} LIMIT ? OFFSET ?`,
   )
     .bind(limit, offset)
     .all();
@@ -47,7 +47,11 @@ export async function onRequestGet({ request, env }) {
       type,
       offset,
       count: result.results.length,
-      items: result.results.map((row) => JSON.parse(row.data)),
+      items: result.results.map((row) => {
+        const item = JSON.parse(row.data);
+        const subject = normalizeSubject(item.subject || row.subject);
+        return subject ? { ...item, subject } : item;
+      }),
     },
     {
       headers: {

@@ -1,4 +1,5 @@
-import { getAuthenticatedUser, hasTraceAccess, isAdminUser, json, touchUser } from "../_shared.js";
+import { getAuthenticatedUser, hasLifetimeAccess, isAdminUser, json, touchUser } from "../_shared.js";
+import { getDiscountQuote } from "./_discount.js";
 
 async function sha512(value) {
   const digest = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(value));
@@ -11,9 +12,15 @@ export async function onRequestPost({ request, env }) {
   const auth = await getAuthenticatedUser(request, env);
   if (auth.error) return auth.error;
 
-  if (isAdminUser(auth.user, env) || await hasTraceAccess(env, auth.user)) {
+  if (isAdminUser(auth.user, env) || await hasLifetimeAccess(env, auth.user)) {
     return json({ hasAccess: true, isAdmin: isAdminUser(auth.user, env) });
   }
+
+  const body = await request.json().catch(() => ({}));
+  const priceInr = Math.max(1, Number(env.TRACEPG_PRICE_INR || 1000));
+  const quote = await getDiscountQuote(env, body.discountCode, priceInr);
+  if (quote.error) return json({ error: quote.error }, 400);
+  if (body.preview) return json({ hasAccess: false, priceInr, amount: quote.amount, discountCode: quote.code, discountAmount: quote.discountAmount, discountType: quote.discountType || null, discountValue: quote.discountValue || 0 });
 
   if (!env.PAYU_KEY || !env.PAYU_SALT) {
     return json({ error: "Payment setup is incomplete. Add the PayU key and salt first." }, 503);
@@ -21,8 +28,7 @@ export async function onRequestPost({ request, env }) {
 
   await touchUser(env, auth.user);
 
-  const priceInr = Math.max(1, Number(env.TRACEPG_PRICE_INR || 1000));
-  const amount = priceInr.toFixed(2);
+  const amount = quote.amount.toFixed(2);
   const txnid = `tp_${Date.now()}_${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}`;
   const productinfo = "TracePG lifetime access";
   const firstname = clean(auth.user.user_metadata?.full_name || auth.user.user_metadata?.name || "TracePG User").slice(0, 60);
@@ -35,8 +41,8 @@ export async function onRequestPost({ request, env }) {
   const callbackUrl = `${baseUrl}/api/billing/response`;
   const now = Date.now();
   await env.DB.prepare(
-    "INSERT INTO payment_orders (id, user_id, amount, currency, status, created_at, updated_at) VALUES (?, ?, ?, 'INR', 'created', ?, ?)",
-  ).bind(txnid, auth.user.id, amount, now, now).run();
+    "INSERT INTO payment_orders (id, user_id, amount, currency, status, discount_code, created_at, updated_at) VALUES (?, ?, ?, 'INR', 'created', ?, ?, ?)",
+  ).bind(txnid, auth.user.id, amount, quote.code || null, now, now).run();
 
   return json({
     hasAccess: false,
@@ -44,6 +50,9 @@ export async function onRequestPost({ request, env }) {
     action: env.PAYU_ENV === "production" ? "https://secure.payu.in/_payment" : "https://test.payu.in/_payment",
     txnid,
     amount,
+    priceInr,
+    discountCode: quote.code,
+    discountAmount: quote.discountAmount,
     fields: {
       key: env.PAYU_KEY,
       txnid,

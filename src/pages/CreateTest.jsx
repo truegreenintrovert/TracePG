@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+import { FiTarget } from "react-icons/fi";
 import { getSubjects, shuffle } from "../lib/study";
+import { normalizeSubject } from "../lib/subjects";
 
 export default function CreateTest({ questions, state, onStart }) {
   const subjects = getSubjects(questions);
@@ -11,7 +13,7 @@ export default function CreateTest({ questions, state, onStart }) {
   const topics = useMemo(
     () => [...new Set(
       questions
-        .filter((question) => selectedSubjects.includes(question.subject))
+        .filter((question) => selectedSubjects.includes(normalizeSubject(question.subject)))
         .map((question) => String(question.chapter || question.topic || "General").trim())
         .filter(Boolean),
     )].sort((a, b) => a.localeCompare(b)),
@@ -23,7 +25,7 @@ export default function CreateTest({ questions, state, onStart }) {
       questions.filter(
         (question) =>
             (!selectedSubjects.length ||
-            selectedSubjects.includes(question.subject)) &&
+            selectedSubjects.includes(normalizeSubject(question.subject))) &&
           (!selectedTopic || selectedTopic === "__all__" || (question.chapter || question.topic || "General") === selectedTopic) &&
           (!difficulty || question.difficulty === difficulty) &&
           (mode === "all" ||
@@ -156,7 +158,7 @@ export default function CreateTest({ questions, state, onStart }) {
             disabled={!available.length || (selectedSubjects.length > 0 && !selectedTopic)}
             onClick={start}
           >
-            🎯 Start test
+            <><FiTarget aria-hidden="true" /> Start test</>
           </button>
           <span className="text-sm font-semibold text-slate-500">
             {available.length.toLocaleString()} questions available

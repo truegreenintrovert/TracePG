@@ -1,8 +1,12 @@
 import { useState } from "react";
+import { FiCheckCircle } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
 import { appUrl, isSupabaseConfigured, supabase } from "../lib/supabase";
 import SiteFooter from "./SiteFooter";
+import SEO from "./SEO";
+import BrandLogo from "./BrandLogo";
 
-export default function AuthScreen({ onPasswordRecovery }) {
+export default function AuthScreen({ onPasswordRecovery, onBack }) {
   const [mode, setMode] = useState("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -102,6 +106,7 @@ export default function AuthScreen({ onPasswordRecovery }) {
   if (!isSupabaseConfigured) {
     return (
       <AuthLayout>
+        <SEO title="Sign in | TracePG" description="Sign in to your TracePG NEET-PG preparation workspace." noindex path="/sign-in" />
         <h1 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">
           Connect TracePG login
         </h1>
@@ -129,8 +134,9 @@ export default function AuthScreen({ onPasswordRecovery }) {
 
   return (
     <AuthLayout>
+      <SEO title={`${mode === "signup" ? "Create account" : mode === "forgot" ? "Reset password" : "Sign in"} | TracePG`} description="Sign in to TracePG to save your NEET-PG practice, revision, and progress." noindex path="/sign-in" />
       <div className="mb-7">
-        <p className="text-sm font-bold uppercase tracking-[.2em] text-brand-600">TracePG</p>
+        <BrandLogo className="mb-2" iconClassName="h-10 w-10" wordmarkClassName="h-6 w-auto max-w-[165px]" />
         <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
           {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your account" : mode === "forgot" ? (resetStep ? "Enter reset code" : "Reset your password") : "Sign in with email code"}
         </h1>
@@ -146,7 +152,7 @@ export default function AuthScreen({ onPasswordRecovery }) {
       {mode !== "forgot" && !isEmailCode && (
         <>
           <button className="secondary-button flex w-full items-center justify-center gap-2" onClick={signInWithGoogle} disabled={busy}>
-            <span className="text-base font-black">G</span>
+            <FcGoogle className="text-lg" aria-hidden="true" />
             Continue with Google
           </button>
 
@@ -219,6 +225,11 @@ export default function AuthScreen({ onPasswordRecovery }) {
           Back to password sign in
         </button>
       )}
+      {onBack && (
+        <button className="mt-4 w-full text-sm font-bold text-slate-500 hover:text-brand-600 dark:text-slate-400" onClick={onBack}>
+          Back to TracePG home
+        </button>
+      )}
     </AuthLayout>
   );
 }
@@ -255,7 +266,7 @@ export function ResetPasswordScreen({ onComplete }) {
 
   return (
     <AuthLayout>
-      <p className="text-sm font-bold uppercase tracking-[.2em] text-brand-600">TracePG</p>
+      <BrandLogo iconClassName="h-10 w-10" wordmarkClassName="h-6 w-auto max-w-[165px]" />
       <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">Choose a new password</h1>
       <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Use at least 6 characters for your new password.</p>
       <form className="mt-7 space-y-4" onSubmit={submit}>
@@ -278,7 +289,7 @@ export function ResetPasswordScreen({ onComplete }) {
 export function ConfirmEmailScreen({ onContinue }) {
   return (
     <AuthLayout>
-      <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-100 text-3xl dark:bg-emerald-950/50">✓</div>
+      <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-100 text-3xl text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300"><FiCheckCircle aria-hidden="true" /></div>
       <h1 className="mt-6 text-center text-3xl font-black tracking-tight text-slate-950 dark:text-white">Email confirmed</h1>
       <p className="mt-3 text-center text-sm leading-6 text-slate-500 dark:text-slate-400">
         Your TracePG account is ready. Continue to your preparation workspace and start where you left off.

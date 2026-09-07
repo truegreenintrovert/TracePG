@@ -33,6 +33,9 @@ export async function processPayUResult(fields, env) {
   ];
   if (success) {
     statements.push(env.DB.prepare("INSERT INTO entitlements (user_id, status, provider, provider_order_id, provider_payment_id, amount, currency, created_at, updated_at) VALUES (?, 'active', 'payu', ?, ?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET status = 'active', provider = excluded.provider, provider_order_id = excluded.provider_order_id, provider_payment_id = excluded.provider_payment_id, amount = excluded.amount, currency = excluded.currency, updated_at = excluded.updated_at").bind(order.user_id, fields.txnid, fields.mihpayid || fields.txnid, order.amount, order.currency, now, now));
+    if (order.discount_code) {
+      statements.push(env.DB.prepare("UPDATE discount_codes SET used_count = used_count + 1, updated_at = ? WHERE code = ?").bind(now, order.discount_code));
+    }
   }
   await env.DB.batch(statements);
   return { ok: true, success, userId: order.user_id };

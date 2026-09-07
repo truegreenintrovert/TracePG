@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "dev:serverless": "wrangler pages dev dist",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name tracepg",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name tracepg --branch main",
     "db:local": "wrangler d1 execute tracepg --local --file=schema.sql",
     "db:remote": "wrangler d1 execute tracepg --remote --file=schema.sql",
     "seed:questions": "node scripts/generate-question-seed.mjs",
@@ -22,6 +22,7 @@
     "pdfjs-dist": "^6.3.289",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-icons": "^5.7.0",
     "read-excel-file": "^9.3.10"
   },
   "devDependencies": {

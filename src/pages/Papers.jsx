@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { FiTarget } from "react-icons/fi";
 import { shuffle } from "../lib/study";
 
 export default function Papers({ papers, onStart }) {
@@ -67,7 +68,7 @@ export default function Papers({ papers, onStart }) {
               )
             }
           >
-            🎯 Solve paper
+            <><FiTarget aria-hidden="true" /> Solve paper</>
           </button>
         </div>
       </section>

@@ -1,13 +1,13 @@
 import { getAdminUser, json } from "../_shared.js";
 
-const allowedSlugs = new Set(["help", "qa"]);
+const allowedSlugs = new Set(["product", "about", "contact", "help", "qa"]);
 
 function validText(value, max = 5000) {
   return typeof value === "string" && value.trim().length > 0 && value.length <= max;
 }
 
 function validatePage(body) {
-  if (!body || !allowedSlugs.has(body.slug)) return "A valid support page is required.";
+  if (!body || !allowedSlugs.has(body.slug)) return "A valid public page is required.";
   if (!validText(body.label, 120) || !validText(body.title, 200) || !validText(body.intro, 5000)) return "Label, title, and introduction are required.";
   if (!Array.isArray(body.sections) || body.sections.some((section) => !Array.isArray(section) || section.length !== 2 || !validText(section[0], 200) || !validText(section[1], 5000))) return "Each guidance section needs a heading and body.";
   if (!Array.isArray(body.faqs) || body.faqs.some((faq) => !faq || !validText(faq.question, 500) || !validText(faq.answer, 5000))) return "Each Q&A entry needs a question and answer.";

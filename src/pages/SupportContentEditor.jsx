@@ -4,6 +4,13 @@ import { adminFetch } from "../lib/adminApi";
 
 const blankSection = ["New section", "Add the guidance text here."];
 const blankFaq = { category: "General", question: "", answer: "" };
+const pageOptions = [
+  ["product", "Product"],
+  ["about", "About Us"],
+  ["contact", "Contact Us"],
+  ["help", "Help & Support"],
+  ["qa", "Q&A"],
+];
 
 export default function SupportContentEditor({ pages, onSaved }) {
   const [slug, setSlug] = useState("help");
@@ -40,9 +47,9 @@ export default function SupportContentEditor({ pages, onSaved }) {
   return (
     <form className="surface-card space-y-6" onSubmit={save}>
       <div className="flex flex-wrap gap-2">
-        {["help", "qa"].map((pageSlug) => (
+        {pageOptions.map(([pageSlug, pageLabel]) => (
           <button type="button" key={pageSlug} className={`rounded-xl px-4 py-2 text-sm font-bold ${slug === pageSlug ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`} onClick={() => setSlug(pageSlug)}>
-            {pageSlug === "help" ? "Help & Support" : "Q&A"}
+            {pageLabel}
           </button>
         ))}
       </div>
@@ -56,8 +63,8 @@ export default function SupportContentEditor({ pages, onSaved }) {
       <label className="block text-sm font-bold">Introduction<textarea className="field mt-2 min-h-24" value={draft.intro} onChange={(event) => update({ intro: event.target.value })} required /></label>
 
       <div>
-        <h3 className="text-lg font-black">Contact and support details</h3>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">These fields appear as contact cards and the main support button.</p>
+        <h3 className="text-lg font-black">Contact and call-to-action details</h3>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">These fields are optional and appear as contact cards and the main page button.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="Support email" type="email" value={draft.contactEmail} onChange={(value) => update({ contactEmail: value })} />
           <Field label="Support phone" value={draft.contactPhone} onChange={(value) => update({ contactPhone: value })} />
@@ -69,7 +76,7 @@ export default function SupportContentEditor({ pages, onSaved }) {
 
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h3 className="text-lg font-black">Guidance sections</h3><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Add the help topics shown above the Q&A list.</p></div>
+          <div><h3 className="text-lg font-black">Page sections</h3><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Add the sections shown on this public page.</p></div>
           <button type="button" className="secondary-button" onClick={() => update({ sections: [...draft.sections, [...blankSection]] })}>+ Add section</button>
         </div>
         <div className="mt-4 space-y-4">

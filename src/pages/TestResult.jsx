@@ -1,3 +1,5 @@
+import { FiBarChart2, FiClipboard, FiSearch, FiTarget, FiXCircle } from "react-icons/fi";
+
 export default function TestResult({ result, onReview, onNavigate }) {
   const attempted = result.correct + result.wrong;
   const accuracy = result.total ? Math.round((result.correct / result.total) * 100) : 0;
@@ -5,12 +7,12 @@ export default function TestResult({ result, onReview, onNavigate }) {
   const maxScore = result.total * 4;
   const scorePercent = maxScore ? Math.round((result.score / maxScore) * 100) : 0;
   const message = accuracy >= 85
-    ? "🔥 Excellent! Rank-ready performance."
+    ? "Excellent! Rank-ready performance."
     : accuracy >= 70
-      ? "💪 Strong attempt. Keep polishing weak areas."
+      ? "Strong attempt. Keep polishing weak areas."
       : accuracy >= 50
-        ? "📚 Good start. Revise your mistakes and retry."
-        : "🎯 Focus on revision first, then retake a targeted test.";
+        ? "Good start. Revise your mistakes and retry."
+        : "Focus on revision first, then retake a targeted test.";
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -49,14 +51,14 @@ export default function TestResult({ result, onReview, onNavigate }) {
       <section className="surface-card">
         <h2 className="text-lg font-extrabold">Review your test</h2>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">See every question, your answer, the correct answer, explanation, and revision notes.</p>
-        <button className="primary-button mt-5" onClick={() => onReview(result)}>🔍 Review full test</button>
+        <button className="primary-button mt-5 inline-flex items-center gap-2" onClick={() => onReview(result)}><FiSearch aria-hidden="true" /> Review full test</button>
       </section>
 
       <section className="surface-card flex flex-wrap gap-3">
-        <button className="primary-button" onClick={() => onNavigate("wrong")}>❌ Revise wrong ({result.wrong})</button>
-        <button className="secondary-button" onClick={() => onNavigate("test")}>🎯 Create another test</button>
-        <button className="secondary-button" onClick={() => onNavigate("analytics")}>📈 View analytics</button>
-        <button className="secondary-button" onClick={() => onNavigate("history")}>📊 Test history</button>
+        <button className="primary-button inline-flex items-center gap-2" onClick={() => onNavigate("wrong")}><FiXCircle aria-hidden="true" /> Revise wrong ({result.wrong})</button>
+        <button className="secondary-button inline-flex items-center gap-2" onClick={() => onNavigate("test")}><FiTarget aria-hidden="true" /> Create another test</button>
+        <button className="secondary-button inline-flex items-center gap-2" onClick={() => onNavigate("analytics")}><FiBarChart2 aria-hidden="true" /> View analytics</button>
+        <button className="secondary-button inline-flex items-center gap-2" onClick={() => onNavigate("history")}><FiClipboard aria-hidden="true" /> Test history</button>
       </section>
     </div>
   );

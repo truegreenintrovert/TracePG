@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FiBookmark, FiFileText, FiZap } from "react-icons/fi";
 
 export default function QuestionCard({
   question,
@@ -22,7 +23,7 @@ export default function QuestionCard({
           aria-label={bookmarked ? "Remove bookmark" : "Bookmark question"}
           onClick={() => onBookmark(question.id)}
         >
-          {bookmarked ? "🔖" : "📑"}
+          {bookmarked ? <FiBookmark className="fill-current" aria-hidden="true" /> : <FiFileText aria-hidden="true" />}
         </button>
       </div>
       <h3 className="mt-4 text-base font-bold leading-7 text-slate-900 dark:text-white">
@@ -57,7 +58,7 @@ export default function QuestionCard({
       )}
       {revealed && question.e && (
         <p className="mt-4 rounded-xl bg-blue-50 p-3 text-sm leading-6 text-slate-600 dark:bg-blue-950/30 dark:text-slate-300">
-          💡 {question.e}
+          <FiZap className="mr-1 inline text-brand-600" aria-hidden="true" /> {question.e}
         </p>
       )}
     </article>

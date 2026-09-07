@@ -1,7 +1,7 @@
 import { getAuthenticatedUser, hasTraceAccess, isAdminUser, json, touchUser } from "../_shared.js";
 
 const TRIAL_SIZE = 20;
-const MAX_TRIALS = 2;
+const TRIAL_DURATION_MS = 3 * 86400000;
 
 export async function onRequestPost({ request, env }) {
   const auth = await getAuthenticatedUser(request, env);
@@ -11,22 +11,35 @@ export async function onRequestPost({ request, env }) {
   }
 
   await touchUser(env, auth.user);
+  const now = Date.now();
   await env.DB.prepare(
     "INSERT OR IGNORE INTO trial_usage (user_id, used_count, created_at, updated_at) VALUES (?, 0, ?, ?)",
-  ).bind(auth.user.id, Date.now(), Date.now()).run();
+  ).bind(auth.user.id, now, now).run();
 
-  const usage = await env.DB.prepare(
-    "UPDATE trial_usage SET used_count = used_count + 1, updated_at = ? WHERE user_id = ? AND used_count < ?",
-  ).bind(Date.now(), auth.user.id, MAX_TRIALS).run();
-  if (Number(usage.meta?.changes || 0) !== 1) {
-    const current = await env.DB.prepare("SELECT used_count FROM trial_usage WHERE user_id = ?").bind(auth.user.id).first();
-    return json({ error: "Your two free trial tests have already been used.", remaining: Math.max(0, MAX_TRIALS - Number(current?.used_count || MAX_TRIALS)) }, 403);
+  let current = await env.DB.prepare(
+    "SELECT trial_started_at AS trialStartedAt, trial_expires_at AS trialExpiresAt FROM trial_usage WHERE user_id = ?",
+  ).bind(auth.user.id).first();
+  if (Number(current?.trialExpiresAt || 0) > now) {
+    return json({ hasAccess: true, trialActive: true, trialStartedAt: current.trialStartedAt, trialExpiresAt: current.trialExpiresAt });
+  }
+  if (current?.trialStartedAt) {
+    return json({ error: "Your 3-day free trial has expired.", trialActive: false, trialExpiresAt: current.trialExpiresAt }, 403);
   }
 
-  const result = await env.DB.prepare("SELECT data FROM questions ORDER BY RANDOM() LIMIT ?").bind(TRIAL_SIZE).all();
-  const items = result.results.map((row) => JSON.parse(row.data));
-  if (items.length < TRIAL_SIZE) return json({ error: "The trial question bank is not ready yet." }, 503);
+  const trialStartedAt = now;
+  const trialExpiresAt = now + TRIAL_DURATION_MS;
+  const started = await env.DB.prepare(
+    "UPDATE trial_usage SET trial_started_at = ?, trial_expires_at = ?, updated_at = ? WHERE user_id = ? AND trial_started_at IS NULL",
+  ).bind(trialStartedAt, trialExpiresAt, now, auth.user.id).run();
+  if (Number(started.meta?.changes || 0) !== 1) {
+    current = await env.DB.prepare(
+      "SELECT trial_started_at AS trialStartedAt, trial_expires_at AS trialExpiresAt FROM trial_usage WHERE user_id = ?",
+    ).bind(auth.user.id).first();
+    if (Number(current?.trialExpiresAt || 0) > Date.now()) {
+      return json({ hasAccess: true, trialActive: true, trialStartedAt: current.trialStartedAt, trialExpiresAt: current.trialExpiresAt });
+    }
+    return json({ error: "Your 3-day free trial has expired.", trialActive: false, trialExpiresAt: current?.trialExpiresAt || null }, 403);
+  }
 
-  const usedCount = await env.DB.prepare("SELECT used_count FROM trial_usage WHERE user_id = ?").bind(auth.user.id).first();
-  return json({ hasAccess: false, trialNumber: Number(usedCount?.used_count || 1), remaining: Math.max(0, MAX_TRIALS - Number(usedCount?.used_count || 1)), items });
+  return json({ hasAccess: true, trialActive: true, trialStartedAt, trialExpiresAt });
 }

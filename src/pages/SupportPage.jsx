@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { FiArrowLeft, FiArrowRight, FiClock, FiMail, FiPhone } from "react-icons/fi";
 import SiteFooter from "../components/SiteFooter";
+import SEO, { SITE_URL } from "../components/SEO";
 import { getSupportPage } from "../data/supportContent";
+import BrandLogo from "../components/BrandLogo";
 
 export default function SupportPage({ page, onNavigate }) {
   const fallback = page || getSupportPage(window.location.pathname) || getSupportPage("/help-support");
@@ -25,15 +28,64 @@ export default function SupportPage({ page, onNavigate }) {
     onNavigate(path);
   };
 
+  const goBackToPreviousRoute = (event) => {
+    event.preventDefault();
+    const previousUrl = document.referrer;
+    let hasSameOriginHistory = false;
+    try {
+      hasSameOriginHistory = Boolean(previousUrl) && new URL(previousUrl, window.location.href).origin === window.location.origin;
+    } catch {
+      hasSameOriginHistory = false;
+    }
+    if (hasSameOriginHistory && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    if (onNavigate) {
+      onNavigate("home");
+      return;
+    }
+    window.location.assign("/");
+  };
+
+  const pagePath = current.path || {
+    product: "/product",
+    about: "/about-us",
+    contact: "/contact-us",
+    help: "/help-support",
+    qa: "/qa",
+  }[current.slug] || window.location.pathname;
+  const structuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: `${current.label} | TracePG`,
+      url: `${SITE_URL}${pagePath}`,
+      description: current.intro,
+      isPartOf: { "@type": "WebSite", name: "TracePG", url: SITE_URL },
+    },
+    ...(current.slug === "qa" && current.faqs?.length
+      ? [{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: current.faqs.map((faq) => ({
+            "@type": "Question",
+            name: faq.question,
+            acceptedAnswer: { "@type": "Answer", text: faq.answer },
+          })),
+        }]
+      : []),
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+      <SEO title={`${current.label} | TracePG`} description={current.intro} path={pagePath} structuredData={structuredData} />
       <header className="border-b border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/90">
         <div className="mx-auto flex max-w-[1000px] items-center justify-between px-4 py-4 sm:px-6">
-          <a className="flex items-center gap-2 font-extrabold tracking-tight" href="/" onClick={(event) => internalNavigate(event, "home")}>
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-lg text-white shadow-lg shadow-blue-200 dark:shadow-none">🩺</span>
-            TracePG
+          <a href="/" aria-label="TracePG home" onClick={(event) => internalNavigate(event, "home")}>
+            <BrandLogo iconClassName="h-9 w-9" wordmarkClassName="h-6 w-auto max-w-[150px]" />
           </a>
-          <a className="text-sm font-bold text-brand-600 hover:text-brand-700" href="/" onClick={(event) => internalNavigate(event, "home")}>Back to TracePG</a>
+          <a className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-600 hover:text-brand-700" href="/" onClick={goBackToPreviousRoute}><FiArrowLeft aria-hidden="true" /> Back</a>
         </div>
       </header>
 
@@ -47,14 +99,14 @@ export default function SupportPage({ page, onNavigate }) {
 
         {(current.contactEmail || current.contactPhone || current.supportHours) && (
           <section className="mt-8 grid gap-4 sm:grid-cols-3">
-            {current.contactEmail && <ContactCard icon="✉️" label="Email" value={current.contactEmail} href={`mailto:${current.contactEmail}`} />}
-            {current.contactPhone && <ContactCard icon="📞" label="Phone" value={current.contactPhone} href={`tel:${current.contactPhone}`} />}
-            {current.supportHours && <ContactCard icon="🕘" label="Support hours" value={current.supportHours} />}
+            {current.contactEmail && <ContactCard icon={FiMail} label="Email" value={current.contactEmail} href={`mailto:${current.contactEmail}`} />}
+            {current.contactPhone && <ContactCard icon={FiPhone} label="Phone" value={current.contactPhone} href={`tel:${current.contactPhone}`} />}
+            {current.supportHours && <ContactCard icon={FiClock} label="Support hours" value={current.supportHours} />}
           </section>
         )}
 
         {current.supportCtaUrl && current.supportCtaLabel && (
-          <a className="primary-button mt-6 inline-flex" href={current.supportCtaUrl}>{current.supportCtaLabel} →</a>
+          <a className="primary-button mt-6 inline-flex items-center gap-2" href={current.supportCtaUrl}>{current.supportCtaLabel} <FiArrowRight aria-hidden="true" /></a>
         )}
 
         {current.sections?.length > 0 && (
@@ -91,7 +143,7 @@ export default function SupportPage({ page, onNavigate }) {
   );
 }
 
-function ContactCard({ icon, label, value, href }) {
-  const content = <><span className="text-xl" aria-hidden="true">{icon}</span><span><strong className="block text-xs uppercase tracking-wider text-slate-400">{label}</strong><span className="mt-1 block text-sm font-bold text-slate-700 dark:text-slate-200">{value}</span></span></>;
+function ContactCard({ icon: Icon, label, value, href }) {
+  const content = <><Icon className="mt-0.5 shrink-0 text-xl text-brand-600" aria-hidden="true" /><span><strong className="block text-xs uppercase tracking-wider text-slate-400">{label}</strong><span className="mt-1 block text-sm font-bold text-slate-700 dark:text-slate-200">{value}</span></span></>;
   return href ? <a className="surface-card flex gap-3" href={href}>{content}</a> : <div className="surface-card flex gap-3">{content}</div>;
 }

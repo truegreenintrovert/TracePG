@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import QuestionCard from "../components/QuestionCard";
 import { getSubjects } from "../lib/study";
+import { normalizeSubject } from "../lib/subjects";
 
 export default function QuestionBank({ questions, state, onBookmark }) {
   const [subject, setSubject] = useState("");
@@ -11,7 +12,7 @@ export default function QuestionBank({ questions, state, onBookmark }) {
       questions
         .filter(
           (question) =>
-            (!subject || question.subject === subject) &&
+            (!subject || normalizeSubject(question.subject) === subject) &&
             (!difficulty || question.difficulty === difficulty) &&
             (!search ||
               `${question.q} ${(question.o || []).join(" ")} ${question.e || ""}`

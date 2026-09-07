@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FiX } from "react-icons/fi";
 import { appUrl, supabase } from "../lib/supabase";
 
 export default function ProfilePanel({ user, onClose, onSignOut }) {
@@ -110,7 +111,7 @@ export default function ProfilePanel({ user, onClose, onSignOut }) {
             <p className="text-xs font-bold uppercase tracking-[.2em] text-brand-600">Account</p>
             <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 dark:text-white">Your profile</h1>
           </div>
-          <button className="icon-button" aria-label="Close profile" onClick={onClose}>×</button>
+          <button className="icon-button" aria-label="Close profile" onClick={onClose}><FiX size={19} /></button>
         </div>
 
         <div className="mt-6 flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">

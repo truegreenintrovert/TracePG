@@ -1,11 +1,13 @@
 import StatCard from "../components/StatCard";
 import { formatDate, getDueQuestions, getSubjectStats } from "../lib/study";
+import { FiAlertTriangle, FiArrowRight, FiBarChart2, FiBookOpen, FiCheckCircle, FiClock, FiCpu, FiFileText, FiRepeat, FiTarget, FiZap } from "react-icons/fi";
 
 export default function Dashboard({
   questions,
   state,
   onNavigate,
   onStartAdaptive,
+  onContinueTest,
 }) {
   const stats = getSubjectStats(questions, state);
   const due = getDueQuestions(questions, state);
@@ -18,6 +20,11 @@ export default function Dashboard({
     .filter((item) => item.attempted)
     .sort((a, b) => a.accuracy - b.accuracy)
     .slice(0, 3);
+  const pausedTests = state.pausedTests?.length
+    ? state.pausedTests
+    : state.pausedTest
+      ? [state.pausedTest]
+      : [];
 
   return (
     <div className="space-y-6">
@@ -33,6 +40,30 @@ export default function Dashboard({
           tracking.
         </p>
       </div>
+
+      {pausedTests.length > 0 && (
+        <section className="surface-card border-brand-200 bg-blue-50/70 dark:border-brand-900/70 dark:bg-brand-950/20">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.18em] text-brand-600">Ongoing tests</p>
+              <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">Paused tests</h2>
+              <p className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">Continue any test whenever you are ready.</p>
+            </div>
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-600 text-white"><FiClock aria-hidden="true" /></span>
+          </div>
+          <div className="mt-4 space-y-3">
+            {pausedTests.map((pausedTest, index) => (
+              <div key={pausedTest.id || `${pausedTest.title}-${pausedTest.pausedAt || index}`} className="flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white/80 p-4 dark:border-brand-900/60 dark:bg-slate-900/50 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-base font-black text-slate-950 dark:text-white">{pausedTest.title}</h3>
+                  <p className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">{Object.keys(pausedTest.answers || {}).length} of {pausedTest.questions?.length || 0} questions answered · Saved {formatPausedTime(pausedTest.pausedAt)}</p>
+                </div>
+                <button className="primary-button inline-flex shrink-0 items-center justify-center gap-2" onClick={() => onContinueTest(pausedTest.id)}>Continue test <FiArrowRight aria-hidden="true" /></button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-brand-900 via-brand-600 to-sky-400 p-6 text-white shadow-2xl shadow-blue-200 sm:p-8 dark:shadow-none">
         <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-100">
@@ -50,13 +81,13 @@ export default function Dashboard({
             className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-brand-700 transition hover:-translate-y-0.5"
             onClick={() => onNavigate("test")}
           >
-            🎯 Start a test
+            <><FiTarget aria-hidden="true" /> Start a test</>
           </button>
           <button
             className="rounded-xl border border-white/30 bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/20"
             onClick={() => onNavigate("revision")}
           >
-            🔁 Revise due ({due.length})
+            <><FiRepeat aria-hidden="true" /> Revise due ({due.length})</>
           </button>
         </div>
       </section>
@@ -65,18 +96,18 @@ export default function Dashboard({
         <StatCard
           value={questions.length.toLocaleString()}
           label="MCQs"
-          icon="📚"
+          icon={<FiBookOpen aria-hidden="true" />}
         />
         <StatCard
           value={new Set(questions.map((question) => question.subject)).size}
           label="Subjects"
-          icon="🧠"
+          icon={<FiCpu aria-hidden="true" />}
         />
-        <StatCard value={attempted} label="Questions attempted" icon="✅" />
+        <StatCard value={attempted} label="Questions attempted" icon={<FiCheckCircle aria-hidden="true" />} />
         <StatCard
           value={state.wrong.length}
           label="Wrong questions"
-          icon="🎯"
+          icon={<FiTarget aria-hidden="true" />}
         />
       </div>
 
@@ -84,12 +115,12 @@ export default function Dashboard({
         <section className="surface-card">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-extrabold">🎯 Today&apos;s goal</h2>
+              <h2 className="flex items-center gap-2 text-lg font-extrabold"><FiTarget className="text-brand-600" aria-hidden="true" /> Today&apos;s goal</h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Build a steady revision habit.
               </p>
             </div>
-            <span className="text-2xl">⚡</span>
+            <FiZap className="text-2xl text-amber-400" aria-hidden="true" />
           </div>
           <div className="mt-6 flex items-end justify-between">
             <strong className="text-3xl font-black">
@@ -132,7 +163,7 @@ export default function Dashboard({
         <section className="surface-card">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-extrabold">⚠️ Weakest areas</h2>
+              <h2 className="flex items-center gap-2 text-lg font-extrabold"><FiAlertTriangle className="text-amber-500" aria-hidden="true" /> Weakest areas</h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Use these to plan your next block.
               </p>
@@ -182,25 +213,25 @@ export default function Dashboard({
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
           <button className="primary-button" onClick={() => onNavigate("test")}>
-            🎯 Create test
+            <><FiTarget aria-hidden="true" /> Create test</>
           </button>
           <button
             className="secondary-button"
             onClick={() => onNavigate("bank")}
           >
-            📚 Question bank
+            <><FiBookOpen aria-hidden="true" /> Question bank</>
           </button>
           <button
             className="secondary-button"
             onClick={() => onNavigate("papers")}
           >
-            📜 PYQ papers
+            <><FiFileText aria-hidden="true" /> PYQ papers</>
           </button>
           <button
             className="secondary-button"
             onClick={() => onStartAdaptive()}
           >
-            🧠 Smart adaptive
+            <><FiCpu aria-hidden="true" /> Smart adaptive</>
           </button>
         </div>
       </section>
@@ -239,4 +270,12 @@ export default function Dashboard({
       )}
     </div>
   );
+}
+
+function formatPausedTime(timestamp) {
+  if (!timestamp) return "just now";
+  const minutes = Math.max(0, Math.floor((Date.now() - Number(timestamp)) / 60000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  return `${Math.floor(minutes / 60)}h ago`;
 }

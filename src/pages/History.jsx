@@ -1,4 +1,5 @@
 import { formatDate, formatSeconds } from "../lib/study";
+import { FiArrowRight } from "react-icons/fi";
 
 export default function History({ history, onReview }) {
   const totalQuestions = history.reduce((sum, item) => sum + Number(item.total || 0), 0);
@@ -41,7 +42,7 @@ export default function History({ history, onReview }) {
                 <strong className="text-3xl font-black text-brand-600">
                   {item.score}
                 </strong>
-                <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">score</p><button className="mt-2 text-sm font-bold text-brand-600 hover:text-brand-700" onClick={() => onReview?.(item)}>Review →</button></div>
+                <div><p className="text-xs font-bold uppercase tracking-wide text-slate-400">score</p><button className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-brand-600 hover:text-brand-700" onClick={() => onReview?.(item)}>Review <FiArrowRight aria-hidden="true" /></button></div>
               </div>
             </div>
           ))}

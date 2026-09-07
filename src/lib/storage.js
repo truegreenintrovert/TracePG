@@ -1,5 +1,4 @@
-export const STORE_KEY = "tracepg_clean_v1";
-const LEGACY_STORE_KEY = "medprep_clean_v1";
+const USER_STORE_PREFIX = "tracepg_user_v2:";
 import { supabase } from "./supabase";
 
 export const emptyState = {
@@ -11,21 +10,38 @@ export const emptyState = {
   revision: {},
   timeSpent: {},
   dailyTarget: 50,
+  pausedTests: [],
+  pausedTest: null,
+  pausedTestClearedAt: 0,
+  pausedTestRemovedAt: {},
 };
 
-export function loadLocalState() {
+function getUserStoreKey(userId) {
+  return `${USER_STORE_PREFIX}${encodeURIComponent(String(userId))}`;
+}
+
+export function loadLocalState(userId) {
+  if (!userId) return emptyState;
   try {
+    const saved = JSON.parse(localStorage.getItem(getUserStoreKey(userId)) || "{}");
     return {
       ...emptyState,
-      ...JSON.parse(localStorage.getItem(STORE_KEY) || localStorage.getItem(LEGACY_STORE_KEY) || "{}"),
+      ...saved,
+      pausedTests: normalizePausedTests(saved),
+      pausedTest: null,
     };
   } catch {
     return emptyState;
   }
 }
 
-export function saveLocalState(state) {
-  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+export function saveLocalState(state, userId) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(getUserStoreKey(userId), JSON.stringify(state));
+  } catch {
+    // Local storage is optional; cloud progress remains the source of truth.
+  }
 }
 
 export function mergeState(local, remote) {
@@ -46,6 +62,26 @@ export function mergeState(local, remote) {
       attempts[key] = remote.attempts[key];
   });
 
+  const pausedTestClearedAt = Math.max(
+    Number(local.pausedTestClearedAt || 0),
+    Number(remote.pausedTestClearedAt || 0),
+  );
+  const pausedTestRemovedAt = {
+    ...(remote.pausedTestRemovedAt || {}),
+    ...(local.pausedTestRemovedAt || {}),
+  };
+  const pausedCandidates = [...normalizePausedTests(local), ...normalizePausedTests(remote)]
+    .filter((item) => {
+      const removedAt = Number(pausedTestRemovedAt[item.id] || 0);
+      const isLegacy = String(item.id).startsWith("legacy_");
+      return Number(item.pausedAt || 0) > removedAt
+        && (!isLegacy || Number(item.pausedAt || 0) > pausedTestClearedAt);
+    })
+    .sort((left, right) => Number(right.pausedAt || 0) - Number(left.pausedAt || 0));
+  const uniquePausedTests = [
+    ...new Map(pausedCandidates.map((item) => [item.id, item])).values(),
+  ];
+
   return {
     ...local,
     ...remote,
@@ -58,7 +94,25 @@ export function mergeState(local, remote) {
     attempts,
     revision: mergeMax(local.revision, remote.revision),
     timeSpent: mergeMax(local.timeSpent, remote.timeSpent),
+    pausedTestClearedAt,
+    pausedTests: uniquePausedTests,
+    pausedTest: null,
+    pausedTestRemovedAt,
   };
+}
+
+function normalizePausedTests(source = {}) {
+  const list = Array.isArray(source.pausedTests)
+    ? source.pausedTests
+    : source.pausedTest
+      ? [source.pausedTest]
+      : [];
+  return list
+    .filter((item) => item?.questions?.length)
+    .map((item, index) => ({
+      ...item,
+      id: item.id || `legacy_${Number(item.pausedAt || 0)}_${index}`,
+    }));
 }
 
 export async function getRemoteState() {

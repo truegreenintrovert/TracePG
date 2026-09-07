@@ -1,4 +1,5 @@
 import { getDueQuestions, shuffle } from "../lib/study";
+import { FiRepeat, FiTarget } from "react-icons/fi";
 
 export default function Revision({ questions, state, onStart }) {
   const due = getDueQuestions(questions, state);
@@ -20,7 +21,7 @@ export default function Revision({ questions, state, onStart }) {
       </div>
       <div className="grid gap-6 md:grid-cols-2">
         <section className="surface-card">
-          <span className="text-3xl">🔁</span>
+          <FiRepeat className="text-3xl text-brand-600" aria-hidden="true" />
           <h2 className="mt-4 text-xl font-extrabold">Due today</h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
             {due.length
@@ -36,7 +37,7 @@ export default function Revision({ questions, state, onStart }) {
           </button>
         </section>
         <section className="surface-card">
-          <span className="text-3xl">🎯</span>
+          <FiTarget className="text-3xl text-brand-600" aria-hidden="true" />
           <h2 className="mt-4 text-xl font-extrabold">Repeated wrong</h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
             {wrong.length

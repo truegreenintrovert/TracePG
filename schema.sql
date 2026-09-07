@@ -88,6 +88,8 @@ CREATE TABLE IF NOT EXISTS support_pages (
   updated_at INTEGER NOT NULL
 );
 
+-- About Us and Contact Us use this same admin-managed public content model.
+
 CREATE TABLE IF NOT EXISTS payment_orders (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -95,6 +97,7 @@ CREATE TABLE IF NOT EXISTS payment_orders (
   currency TEXT NOT NULL,
   status TEXT NOT NULL,
   payment_id TEXT,
+  discount_code TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -117,6 +120,43 @@ CREATE TABLE IF NOT EXISTS entitlements (
 CREATE TABLE IF NOT EXISTS trial_usage (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   used_count INTEGER NOT NULL DEFAULT 0,
+  trial_started_at INTEGER,
+  trial_expires_at INTEGER,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS discount_codes (
+  code TEXT PRIMARY KEY,
+  discount_type TEXT NOT NULL CHECK (discount_type IN ('percent', 'fixed')),
+  discount_value REAL NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  max_uses INTEGER,
+  used_count INTEGER NOT NULL DEFAULT 0,
+  expires_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_discount_codes_active
+  ON discount_codes(active);
+
+CREATE TABLE IF NOT EXISTS feedback (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT,
+  category TEXT NOT NULL,
+  rating INTEGER,
+  message TEXT NOT NULL,
+  contact_requested INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'new',
+  admin_note TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_created_at
+  ON feedback(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_status
+  ON feedback(status);

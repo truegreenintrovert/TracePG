@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import SiteFooter from "../components/SiteFooter";
+import SEO, { SITE_URL } from "../components/SEO";
 import { LEGAL_POLICIES } from "../data/legalPolicies";
+import BrandLogo from "../components/BrandLogo";
 
 export function getLegalPage(pathname) {
   if (pathname === "/privacy") return LEGAL_POLICIES.privacy;
@@ -27,11 +29,22 @@ export default function LegalPage({ policy }) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+      <SEO
+        title={`${current.label} | TracePG`}
+        description={current.intro}
+        path={current.path}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: `${current.label} | TracePG`,
+          url: `${SITE_URL}${current.path}`,
+          description: current.intro,
+        }}
+      />
       <header className="border-b border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/90">
         <div className="mx-auto flex max-w-[1000px] items-center justify-between px-4 py-4 sm:px-6">
-          <a className="flex items-center gap-2 font-extrabold tracking-tight" href="/">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-lg text-white shadow-lg shadow-blue-200 dark:shadow-none">🩺</span>
-            TracePG
+          <a href="/" aria-label="TracePG home">
+            <BrandLogo iconClassName="h-9 w-9" wordmarkClassName="h-6 w-auto max-w-[150px]" />
           </a>
           <a className="text-sm font-bold text-brand-600 hover:text-brand-700" href="/">Back to TracePG</a>
         </div>

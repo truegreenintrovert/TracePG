@@ -14,9 +14,13 @@ import LegalPage, { getLegalPage } from "./pages/LegalPage";
 import AdminPanel from "./pages/AdminPanel";
 import TestResult from "./pages/TestResult";
 import TestReview from "./pages/TestReview";
+import FeedbackPage from "./pages/FeedbackPage";
+import PublicHome from "./pages/PublicHome";
 import SupportPage from "./pages/SupportPage";
 import PremiumAccessScreen from "./components/PremiumAccessScreen";
+import SEO from "./components/SEO";
 import {
+  emptyState,
   getRemoteState,
   loadLocalState,
   mergeState,
@@ -28,6 +32,8 @@ import AuthScreen, { ConfirmEmailScreen, ResetPasswordScreen } from "./component
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { getSupportPage } from "./data/supportContent";
 import { authHeaders } from "./lib/adminApi";
+import { normalizeSubject } from "./lib/subjects";
+import { FiActivity, FiAlertTriangle, FiLock } from "react-icons/fi";
 
 const VIEW_PATHS = {
   home: "/",
@@ -39,11 +45,16 @@ const VIEW_PATHS = {
   revision: "/revision",
   papers: "/papers",
   notes: "/notes",
+  product: "/product",
+  about: "/about-us",
+  contact: "/contact-us",
   help: "/help-support",
   qa: "/qa",
+  feedback: "/feedback",
   result: "/result",
   review: "/review",
   admin: "/admin",
+  signIn: "/sign-in",
 };
 
 function viewFromPath(pathname) {
@@ -61,14 +72,14 @@ export default function App() {
   );
   const [questions, setQuestions] = useState([]);
   const [papers, setPapers] = useState([]);
-  const [state, setState] = useState(loadLocalState);
+  const [state, setState] = useState(emptyState);
+  const [stateUserId, setStateUserId] = useState(null);
   const [view, setViewState] = useState(() => viewFromPath(window.location.pathname));
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem("tracepg_theme") || localStorage.getItem("medprep_theme") || "light",
-  );
+  const [theme, setTheme] = useState(readStoredTheme);
   const [activeTest, setActiveTest] = useState(null);
+  const [testTimeLabel, setTestTimeLabel] = useState("");
+  const [testExitPrompt, setTestExitPrompt] = useState(false);
   const [lastResult, setLastResult] = useState(null);
-  const [syncStatus, setSyncStatus] = useState("Local only");
   const [hydrated, setHydrated] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [dataError, setDataError] = useState("");
@@ -78,10 +89,17 @@ export default function App() {
   const [hasAccess, setHasAccess] = useState(false);
   const [accessInfo, setAccessInfo] = useState({ priceInr: 1000, currency: "INR" });
   const [accessError, setAccessError] = useState("");
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const userId = user?.id || null;
+  const activeState = stateUserId === userId ? state : emptyState;
   const legalPage = getLegalPage(window.location.pathname);
   const publicSupportPage = getSupportPage(window.location.pathname);
 
   const setView = (nextView, options = {}) => {
+    if (activeTest && !options.allowDuringTest && nextView !== "test") {
+      setTestExitPrompt(true);
+      return;
+    }
     if (nextView === "menu") {
       setViewState("menu");
       return;
@@ -95,10 +113,26 @@ export default function App() {
   };
 
   useEffect(() => {
-    const handlePopState = () => setViewState(viewFromPath(window.location.pathname));
+    const handlePopState = () => {
+      const nextView = viewFromPath(window.location.pathname);
+      if (activeTest && nextView !== "test") {
+        window.history.pushState({ view: "test" }, "", VIEW_PATHS.test);
+        setViewState("test");
+        setTestExitPrompt(true);
+        return;
+      }
+      setViewState(nextView);
+    };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [activeTest]);
+
+  useEffect(() => {
+    if (user && view === "signIn") {
+      window.history.replaceState({ view: "home" }, "", VIEW_PATHS.home);
+      setViewState("home");
+    }
+  }, [user, view]);
 
   useEffect(() => {
     if (!supabase) {
@@ -230,50 +264,54 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("tracepg_theme", theme);
+    try {
+      localStorage.setItem("tracepg_theme", theme);
+    } catch {
+      // Some privacy modes block browser storage; the theme still applies for this session.
+    }
   }, [theme]);
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
+      setState(emptyState);
+      setStateUserId(null);
       setHydrated(false);
       return undefined;
     }
+    setHydrated(false);
+    setState(loadLocalState(userId));
+    setStateUserId(userId);
     let mounted = true;
     getRemoteState()
       .then((payload) => {
         if (!mounted) return;
         if (payload.data)
           setState((current) => mergeState(current, payload.data));
-        setSyncStatus("Cloud ready");
       })
-      .catch(() => {
-        if (mounted) setSyncStatus("Local only");
-      })
+      .catch(() => undefined)
       .finally(() => {
         if (mounted) setHydrated(true);
       });
     return () => {
       mounted = false;
     };
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
-    if (!hydrated || !user) return undefined;
-    saveLocalState(state);
+    if (!hydrated || !userId || stateUserId !== userId) return undefined;
+    saveLocalState(state, userId);
     const timer = setTimeout(() => {
-      putRemoteState(state)
-        .then(() => setSyncStatus("Synced"))
-        .catch(() => setSyncStatus("Saved locally"));
+      putRemoteState(state).catch(() => undefined);
     }, 900);
     return () => clearTimeout(timer);
-  }, [state, hydrated, user]);
+  }, [state, hydrated, userId, stateUserId]);
 
   if (legalPage) {
     return <LegalPage policy={legalPage} />;
   }
 
-  if (publicSupportPage && !user) {
-    return <SupportPage page={publicSupportPage} />;
+  if (publicSupportPage) {
+    return <SupportPage page={publicSupportPage} onNavigate={user ? setView : undefined} />;
   }
 
   if (authLoading) {
@@ -302,8 +340,15 @@ export default function App() {
     );
   }
 
-  if (!isSupabaseConfigured || !user) {
+  if (!isSupabaseConfigured) {
     return <AuthScreen onPasswordRecovery={() => setPasswordRecovery(true)} />;
+  }
+
+  if (!user) {
+    if (view === "signIn") {
+      return <AuthScreen onPasswordRecovery={() => setPasswordRecovery(true)} onBack={() => setView("home", { replace: true })} />;
+    }
+    return <PublicHome onSignIn={() => setView("signIn")} />;
   }
 
   const updateState = (updater) => setState((current) => updater(current));
@@ -320,11 +365,43 @@ export default function App() {
       notes: { ...current.notes, [id]: note },
     }));
   const startTest = (questions, title) => {
-    setActiveTest({ questions, title });
+    const durationSeconds = questions.length * 60;
+    setTestTimeLabel(formatTestTime(durationSeconds));
+    setActiveTest({ id: createTestId(), questions, title, endAt: Date.now() + durationSeconds * 1000 });
     setView("test");
   };
+  const resumePausedTest = (pausedTestId) => {
+    const pausedTest = (activeState.pausedTests || []).find((item) => item.id === pausedTestId);
+    if (!pausedTest?.questions?.length) return;
+    setActiveTest({
+      id: pausedTest.id || createTestId(),
+      questions: pausedTest.questions,
+      title: pausedTest.title,
+      answers: pausedTest.answers || {},
+      review: pausedTest.review || [],
+      secondsRemaining: Number(pausedTest.secondsRemaining ?? pausedTest.questions.length * 60),
+      endAt: Date.now() + Number(pausedTest.secondsRemaining ?? pausedTest.questions.length * 60) * 1000,
+    });
+    setTestTimeLabel(formatTestTime(Number(pausedTest.secondsRemaining ?? pausedTest.questions.length * 60)));
+    setTestExitPrompt(false);
+    setView("test", { allowDuringTest: true });
+  };
+  const pauseTest = (pausedTest) => {
+    const id = activeTest?.id || pausedTest.id || createTestId();
+    const snapshot = { ...pausedTest, id, pausedAt: Date.now() };
+    setState((current) => {
+      const pausedTests = (current.pausedTests || []).filter((item) => item.id !== id);
+      const pausedTestRemovedAt = { ...(current.pausedTestRemovedAt || {}) };
+      delete pausedTestRemovedAt[id];
+      return { ...current, pausedTests: [snapshot, ...pausedTests], pausedTest: null, pausedTestRemovedAt };
+    });
+    setActiveTest(null);
+    setTestTimeLabel("");
+    setTestExitPrompt(false);
+    setView("home", { allowDuringTest: true });
+  };
   const startAdaptive = () => {
-    const weak = getSubjectStats(questions, state)
+    const weak = getSubjectStats(questions, activeState)
       .sort((a, b) => a.accuracy - b.accuracy)
       .slice(0, 5)
       .map((item) => item.subject);
@@ -383,6 +460,12 @@ export default function App() {
         attempts,
         revision,
         wrong: wrongIds,
+        pausedTests: (current.pausedTests || []).filter((item) => item.id !== test.id),
+        pausedTest: null,
+        pausedTestRemovedAt: {
+          ...(current.pausedTestRemovedAt || {}),
+          ...(test.id ? { [test.id]: Date.now() } : {}),
+        },
         history: [
           {
             date: new Date().toISOString(),
@@ -412,7 +495,9 @@ export default function App() {
     };
     setLastResult(result);
     setActiveTest(null);
-    setView("result");
+    setTestTimeLabel("");
+    setTestExitPrompt(false);
+    setView("result", { allowDuringTest: true });
   };
 
   const content = (() => {
@@ -420,7 +505,7 @@ export default function App() {
       return (
         <div className="grid min-h-[60vh] place-items-center px-6">
           <div className="max-w-md text-center">
-            <div className="text-4xl">⚠️</div>
+            <FiAlertTriangle className="mx-auto text-4xl text-amber-500" aria-hidden="true" />
             <h2 className="mt-3 text-lg font-bold text-slate-900 dark:text-white">
               Question bank unavailable
             </h2>
@@ -440,7 +525,7 @@ export default function App() {
       return (
         <div className="grid min-h-[60vh] place-items-center">
           <div className="text-center">
-            <div className="text-4xl">🩺</div>
+            <FiActivity className="mx-auto text-4xl text-brand-600" aria-hidden="true" />
             <p className="mt-3 text-sm font-semibold text-slate-500">
               Loading your study workspace…
             </p>
@@ -448,25 +533,31 @@ export default function App() {
         </div>
       );
     if (activeTest)
-      return <TestRunner test={activeTest} onSubmit={submitTest} />;
+      return <TestRunner key={activeTest.id} test={activeTest} onSubmit={submitTest} onPause={pauseTest} onTimeChange={setTestTimeLabel} />;
+    if (upgradeOpen && hasAccess && !isAdmin)
+      return <PremiumAccessScreen user={user} priceInr={accessInfo.priceInr || 1000} trialActive={Boolean(accessInfo.trialActive)} trialDaysRemaining={accessInfo.trialDaysRemaining || Math.max(1, Math.ceil((Number(accessInfo.trialExpiresAt || 0) - Date.now()) / 86400000))} onClose={() => setUpgradeOpen(false)} onUnlocked={() => { setUpgradeOpen(false); setHasAccess(true); setAccessError(""); }} />;
     if (view === "result" && lastResult)
       return <TestResult result={lastResult} onReview={(result) => { setLastResult(result); setView("review"); }} onNavigate={setView} />;
     if (view === "review" && lastResult)
-      return <TestReview result={lastResult} state={state} onSaveNote={saveNote} onBack={() => setView("result", { replace: true })} />;
+      return <TestReview result={lastResult} state={activeState} onSaveNote={saveNote} onBack={() => setView("result", { replace: true })} />;
     if (view === "admin" && adminStatus === "checking")
       return <div className="grid min-h-[60vh] place-items-center text-sm font-semibold text-slate-500">Checking administrator access…</div>;
     if (view === "admin" && !isAdmin)
-      return <div className="surface-card mx-auto mt-10 max-w-lg text-center"><div className="text-4xl">🔒</div><h2 className="mt-3 text-xl font-black">Admin access required</h2><p className="mt-2 text-sm text-slate-500">Your account is not configured as a TracePG administrator.</p><p className="mt-3 break-all text-xs font-semibold text-slate-400">Signed in as: {user?.email || "unknown email"}</p><button className="primary-button mt-5" onClick={() => setView("home")}>Back to dashboard</button></div>;
+      return <div className="surface-card mx-auto mt-10 max-w-lg text-center"><FiLock className="mx-auto text-4xl text-slate-400" aria-hidden="true" /><h2 className="mt-3 text-xl font-black">Admin access required</h2><p className="mt-2 text-sm text-slate-500">Your account is not configured as a TracePG administrator.</p><p className="mt-3 break-all text-xs font-semibold text-slate-400">Signed in as: {user?.email || "unknown email"}</p><button className="primary-button mt-5" onClick={() => setView("home")}>Back to dashboard</button></div>;
     if (view === "admin") return <AdminPanel onBack={() => setView("home")} />;
+    if (view === "product") return <SupportPage page={getSupportPage("/product")} onNavigate={setView} />;
+    if (view === "about") return <SupportPage page={getSupportPage("/about-us")} onNavigate={setView} />;
+    if (view === "contact") return <SupportPage page={getSupportPage("/contact-us")} onNavigate={setView} />;
     if (view === "help") return <SupportPage page={getSupportPage("/help-support")} onNavigate={setView} />;
     if (view === "qa") return <SupportPage page={getSupportPage("/qa")} onNavigate={setView} />;
+    if (view === "feedback") return <FeedbackPage />;
     if (accessLoading)
       return <div className="grid min-h-[60vh] place-items-center text-sm font-semibold text-slate-500">Checking TracePG access…</div>;
     if (!hasAccess && !isAdmin)
-      return <PremiumAccessScreen user={user} priceInr={accessInfo.priceInr || 1000} trialRemaining={accessInfo.trialRemaining || 0} error={accessError} onTrialStarted={(trial) => { setAccessInfo((current) => ({ ...current, trialRemaining: trial.remaining, trialUsed: trial.trialNumber })); setActiveTest({ questions: trial.items, title: `Free Trial Test ${trial.trialNumber}` }); setView("test"); }} onUnlocked={() => { setHasAccess(true); setAccessError(""); setView("home", { replace: true }); }} />;
+      return <PremiumAccessScreen user={user} priceInr={accessInfo.priceInr || 1000} trialAvailable={accessInfo.trialAvailable} error={accessError} onTrialStarted={(trial) => { setAccessInfo((current) => ({ ...current, ...trial, trialAvailable: false, trialDaysRemaining: Math.max(1, Math.ceil((Number(trial.trialExpiresAt || 0) - Date.now()) / 86400000)) })); setHasAccess(true); setAccessError(""); setView("home", { replace: true }); }} onUnlocked={() => { setHasAccess(true); setAccessError(""); setView("home", { replace: true }); }} />;
     const props = {
       questions,
-      state,
+      state: activeState,
       onNavigate: setView,
       onBookmark: toggleBookmark,
       onStart: startTest,
@@ -474,53 +565,83 @@ export default function App() {
     if (view === "bank") return <QuestionBank {...props} />;
     if (view === "test") return <CreateTest {...props} />;
     if (view === "wrong") return <WrongQuestions {...props} />;
-    if (view === "history") return <History history={state.history} onReview={(result) => { setLastResult(result); setView("review"); }} />;
+    if (view === "history") return <History history={activeState.history} onReview={(result) => { setLastResult(result); setView("review"); }} />;
     if (view === "analytics")
-      return <Analytics questions={questions} state={state} />;
+      return <Analytics questions={questions} state={activeState} />;
     if (view === "revision") return <Revision {...props} onStart={startTest} />;
     if (view === "papers")
       return <Papers papers={papers} onStart={startTest} />;
     if (view === "notes")
-      return <Notes questions={questions} state={state} onSave={saveNote} />;
+      return <Notes questions={questions} state={activeState} onSave={saveNote} />;
     return (
       <Dashboard
         questions={questions}
-        state={state}
+        state={activeState}
         onNavigate={setView}
         onStartAdaptive={startAdaptive}
+        onContinueTest={resumePausedTest}
       />
     );
   })();
 
   return (
-    <AppShell
+      <AppShell
       view={view}
       setView={setView}
       theme={theme}
       setTheme={setTheme}
-      syncStatus={syncStatus}
       user={user}
       isAdmin={isAdmin}
+      trialActive={Boolean(accessInfo.trialActive)}
+      testRunning={Boolean(activeTest)}
+      testTimeLabel={testTimeLabel}
+      testExitPrompt={testExitPrompt}
+      onContinueTest={() => setTestExitPrompt(false)}
       onSignOut={() => supabase.auth.signOut()}
+      onUpgrade={() => setUpgradeOpen(true)}
     >
+      <SEO title="TracePG Study Workspace" description="Your private TracePG NEET-PG study workspace." noindex path={VIEW_PATHS[view] || "/"} />
       {content}
     </AppShell>
   );
+}
+
+function formatTestTime(seconds) {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function createTestId() {
+  return `test_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function LoadingScreen({ label }) {
   return (
     <div className="grid min-h-screen place-items-center bg-slate-50 dark:bg-slate-950">
       <div className="text-center">
-        <div className="text-4xl">🩺</div>
+        <FiActivity className="mx-auto text-4xl text-brand-600" aria-hidden="true" />
         <p className="mt-3 text-sm font-semibold text-slate-500">{label}</p>
       </div>
     </div>
   );
 }
 
+function readStoredTheme() {
+  try {
+    return localStorage.getItem("tracepg_theme") || localStorage.getItem("medprep_theme") || "light";
+  } catch {
+    return "light";
+  }
+}
+
 async function readQuestionResponse(response) {
   if (!response.ok)
     throw new Error(`Question bank request failed: ${response.status}`);
-  return response.json();
+  const payload = await response.json();
+  return {
+    ...payload,
+    items: (payload.items || []).map((item) => ({
+      ...item,
+      subject: normalizeSubject(item.subject),
+    })),
+  };
 }

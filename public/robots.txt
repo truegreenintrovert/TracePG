@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /sign-in
+Disallow: /question-bank
+Disallow: /create-test
+Disallow: /wrong-questions
+Disallow: /history
+Disallow: /analytics
+Disallow: /revision
+Disallow: /papers
+Disallow: /notes
+Disallow: /feedback
+Disallow: /result
+Disallow: /review
+Disallow: /admin
+Disallow: /reset-password
+Disallow: /auth/
+
+Sitemap: https://tracepg.com/sitemap.xml

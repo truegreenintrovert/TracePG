@@ -1,21 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { FiArrowLeft, FiArrowRight, FiFlag, FiPause, FiSend, FiTrash2 } from "react-icons/fi";
 
-export default function TestRunner({ test, onSubmit }) {
+export default function TestRunner({ test, onSubmit, onPause, onTimeChange }) {
   const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [review, setReview] = useState([]);
-  const [seconds, setSeconds] = useState(test.questions.length * 60);
+  const [answers, setAnswers] = useState(() => test.answers || {});
+  const [review, setReview] = useState(() => test.review || []);
+  const [endAt] = useState(() => Number(test.endAt) || Date.now() + Number(test.secondsRemaining ?? test.questions.length * 60) * 1000);
+  const [now, setNow] = useState(() => Date.now());
   const question = test.questions[index];
   useEffect(() => {
-    const timer = setInterval(
-      () => setSeconds((value) => Math.max(0, value - 1)),
-      1000,
-    );
+    const timer = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(timer);
   }, []);
+  const seconds = Math.max(0, Math.ceil((endAt - now) / 1000));
   const answered = Object.keys(answers).length;
   const progress = Math.round((answered / test.questions.length) * 100);
   const timeLabel = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  useEffect(() => {
+    onTimeChange?.(timeLabel);
+  }, [timeLabel, onTimeChange]);
   const answer = (value) =>
     setAnswers((current) => ({ ...current, [question.id]: value }));
   const submit = () =>
@@ -39,17 +42,14 @@ export default function TestRunner({ test, onSubmit }) {
       return next;
     });
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto max-w-4xl space-y-5 pb-24 sm:pb-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[.2em] text-brand-600">
             Focused practice
           </p>
           <h1 className="mt-2 text-2xl font-black sm:text-3xl">{test.title}</h1>
         </div>
-        <span className="rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white dark:bg-white dark:text-slate-900">
-          ⏱ {timeLabel}
-        </span>
       </div>
       <div className="surface-card">
         <div className="flex items-center justify-between text-sm font-bold">
@@ -77,35 +77,39 @@ export default function TestRunner({ test, onSubmit }) {
             </button>
           ))}
         </div>
-        <div className="mt-8 flex justify-between gap-3">
+        <div className="sticky bottom-3 z-20 -mx-2 mt-8 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur sm:static sm:mx-0 sm:flex-row sm:justify-between sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none dark:border-slate-700 dark:bg-slate-900/95 sm:dark:bg-transparent">
           <button
-            className="secondary-button"
+            className="secondary-button inline-flex w-full items-center justify-center gap-2 sm:w-auto"
             disabled={index === 0}
             onClick={() => setIndex((value) => value - 1)}
           >
-            ← Previous
+            <><FiArrowLeft aria-hidden="true" /> Previous</>
           </button>
           {index === test.questions.length - 1 ? (
-            <button className="primary-button" onClick={submit}>
-              Submit test
+            <button className="primary-button inline-flex w-full items-center justify-center gap-2 sm:w-auto" onClick={submit}>
+              <><FiSend aria-hidden="true" /> Submit test</>
             </button>
           ) : (
             <button
-              className="primary-button"
+              className="primary-button inline-flex w-full items-center justify-center gap-2 sm:w-auto"
               onClick={() => setIndex((value) => value + 1)}
             >
-              Next →
+              <><FiArrowRight aria-hidden="true" /> Next</>
             </button>
           )}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <button className="secondary-button" onClick={toggleReview}>
-            {review.includes(question.id) ? "⚑ Unmark review" : "⚑ Mark for review"}
+          <button className="secondary-button inline-flex items-center gap-2" onClick={toggleReview}>
+            <FiFlag aria-hidden="true" /> {review.includes(question.id) ? "Unmark review" : "Mark for review"}
           </button>
-          <button className="secondary-button" onClick={clearAnswer} disabled={answers[question.id] === undefined}>
+          <button className="secondary-button inline-flex items-center gap-2" onClick={clearAnswer} disabled={answers[question.id] === undefined}>
+            <FiTrash2 aria-hidden="true" />
             Clear answer
           </button>
         </div>
+        <button className="secondary-button mt-4 inline-flex items-center gap-2" onClick={() => onPause?.({ questions: test.questions, title: test.title, answers, review, secondsRemaining: seconds })}>
+          <FiPause aria-hidden="true" /> Pause test
+        </button>
       </div>
       <div className="flex flex-wrap gap-2">
         {test.questions.map((item, itemIndex) => (

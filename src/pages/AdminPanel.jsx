@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { FiArrowLeft } from "react-icons/fi";
 import { adminFetch } from "../lib/adminApi";
 import BulkQuestionUpload from "./BulkQuestionUpload";
+import DiscountCodeManager from "./DiscountCodeManager";
+import FeedbackManager from "./FeedbackManager";
 import SupportContentEditor from "./SupportContentEditor";
 
 const emptyQuestion = {
@@ -117,11 +120,11 @@ export default function AdminPanel({ onBack }) {
         <div>
           <p className="text-xs font-bold uppercase tracking-[.2em] text-brand-600">Restricted workspace</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Admin panel</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Manage study content and the public legal pages.</p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Manage study content and the public pages shown to visitors.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button className="primary-button" onClick={() => setTab("bulk")}>⬆ Bulk upload</button>
-          <button className="secondary-button" onClick={onBack}>← Back to dashboard</button>
+          <button className="secondary-button inline-flex items-center gap-2" onClick={onBack}><FiArrowLeft aria-hidden="true" /> Back to dashboard</button>
         </div>
       </div>
 
@@ -136,11 +139,13 @@ export default function AdminPanel({ onBack }) {
         <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "questions" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("questions")}>Add question</button>
         <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "pyqs" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("pyqs")}>Add PYQ</button>
         <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "bulk" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("bulk")}>Bulk upload</button>
-        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "support" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("support")}>Help & Q&A</button>
+        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "support" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("support")}>Public pages</button>
         <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "policies" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("policies")}>Edit policies</button>
+        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "discounts" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("discounts")}>Discount codes</button>
+        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "feedback" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("feedback")}>Feedback</button>
       </div>
 
-      {tab === "bulk" ? <BulkQuestionUpload onUploaded={loadAdminData} /> : tab === "support" ? <SupportContentEditor pages={supportPages} onSaved={loadAdminData} /> : tab !== "policies" ? (
+      {tab === "bulk" ? <BulkQuestionUpload onUploaded={loadAdminData} /> : tab === "support" ? <SupportContentEditor pages={supportPages} onSaved={loadAdminData} /> : tab === "discounts" ? <DiscountCodeManager /> : tab === "feedback" ? <FeedbackManager /> : tab !== "policies" ? (
         <form className="surface-card space-y-5" onSubmit={submitQuestion}>
           <div className="grid gap-4 sm:grid-cols-2">
             {tab === "questions" ? <>

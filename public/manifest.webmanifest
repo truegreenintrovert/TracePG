@@ -4,6 +4,14 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
-  "theme_color": "#1d4ed8",
-  "description": "NEET-PG question practice and revision workspace"
+  "theme_color": "#0078fd",
+  "description": "NEET-PG question practice and revision workspace",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }

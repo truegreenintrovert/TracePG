@@ -4,6 +4,9 @@ export default function SiteFooter() {
       <div className="mx-auto flex max-w-[1240px] flex-col gap-3 px-4 py-5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-10">
         <p>© {new Date().getFullYear()} TracePG. Study smarter, stay consistent.</p>
         <nav className="flex flex-wrap gap-x-4 gap-y-2 font-semibold" aria-label="Site links">
+          <a className="transition hover:text-brand-600" href="/product">Product</a>
+          <a className="transition hover:text-brand-600" href="/about-us">About Us</a>
+          <a className="transition hover:text-brand-600" href="/contact-us">Contact Us</a>
           <a className="transition hover:text-brand-600" href="/help-support">Help & Support</a>
           <a className="transition hover:text-brand-600" href="/qa">Q&A</a>
           <a className="transition hover:text-brand-600" href="/privacy">Privacy Policy</a>

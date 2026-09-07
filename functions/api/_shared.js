@@ -36,6 +36,19 @@ export function isAdminUser(user, env) {
   return ids.includes(user.id) || emails.map((email) => email.toLowerCase()).includes(String(user.email || "").toLowerCase());
 }
 
+export function normalizeSubject(value) {
+  const subject = String(value ?? '').trim();
+  const aliases = {
+    anaesthesia: 'Anesthesia',
+    anesthesia: 'Anesthesia',
+    'gynaecology & obstetrics': 'OBG',
+    obg: 'OBG',
+    orthopaedics: 'Orthopedics',
+    orthopedics: 'Orthopedics',
+  };
+  return aliases[subject.toLowerCase()] || subject;
+}
+
 export async function getAdminUser(request, env) {
   const auth = await getAuthenticatedUser(request, env);
   if (auth.error) return auth;
@@ -46,6 +59,18 @@ export async function getAdminUser(request, env) {
 }
 
 export async function hasTraceAccess(env, user) {
+  if (isAdminUser(user, env)) return true;
+  const row = await env.DB.prepare(
+    "SELECT user_id FROM entitlements WHERE user_id = ? AND status = 'active'",
+  ).bind(user.id).first();
+  if (row) return true;
+  const trial = await env.DB.prepare(
+    "SELECT trial_expires_at AS trialExpiresAt FROM trial_usage WHERE user_id = ?",
+  ).bind(user.id).first();
+  return Number(trial?.trialExpiresAt || 0) > Date.now();
+}
+
+export async function hasLifetimeAccess(env, user) {
   if (isAdminUser(user, env)) return true;
   const row = await env.DB.prepare(
     "SELECT user_id FROM entitlements WHERE user_id = ? AND status = 'active'",

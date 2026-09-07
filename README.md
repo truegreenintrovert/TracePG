@@ -42,7 +42,7 @@ The API verifies the Supabase bearer token before reading or writing D1 progress
 
 ## Admin panel
 
-The authenticated admin panel is available at `/admin`. It can add main-bank questions, add PYQs, and edit the Privacy Policy, Terms of Service, and Refund Policy stored in D1.
+The authenticated admin panel is available at `/admin`. It can add main-bank questions, add PYQs, and edit the Product, About Us, Contact Us, Help & Support, Q&A, Privacy Policy, Terms of Service, and Refund Policy content stored in D1.
 
 The Bulk upload tab accepts `.xlsx`, `.csv`, and text-based `.pdf` files. Spreadsheet headers should include `q, o1, o2, o3, o4, a`; use A-D for the answer column to avoid numeric-index ambiguity. PDF questions should use numbered questions followed by A-D options and an `Answer: B` style answer line. Image-only/scanned PDFs require OCR first.
 
@@ -58,7 +58,7 @@ The app entry point is `index.html`, which mounts `src/main.jsx`. The previous m
 
 ## Paid access and custom domain
 
-TracePG is configured for one-time lifetime access at ₹1,000. Each non-admin account can start two free trial tests of 20 questions each before upgrading. The amount can be changed with the Pages variable `TRACEPG_PRICE_INR`. Administrators listed in `ADMIN_EMAILS` or `ADMIN_USER_IDS` are granted unlimited access without payment. The question and trial APIs check access server-side, so the paywall is not only a frontend restriction.
+TracePG is configured for one-time lifetime access at ₹1,000. Each non-admin account can start three free trial tests of 20 questions each before upgrading. Administrators can manage percentage or fixed discount codes from the admin panel, including activation, expiry, and usage limits. The amount can be changed with the Pages variable `TRACEPG_PRICE_INR`. Administrators listed in `ADMIN_EMAILS` or `ADMIN_USER_IDS` are granted unlimited access without payment. The question, trial, and checkout APIs check access server-side, so the paywall and discounts are not only frontend restrictions.
 
 Add these Cloudflare Pages runtime variables/secrets before accepting payments:
 

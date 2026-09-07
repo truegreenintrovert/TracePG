@@ -1,4 +1,4 @@
-import { getAdminUser, json } from "../_shared.js";
+import { getAdminUser, json, normalizeSubject } from "../_shared.js";
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
 const MAX_QUESTIONS_PER_UPLOAD = 1000;
@@ -41,14 +41,16 @@ export async function onRequestPost({ request, env }) {
       return json({ error: `Question ${index + 1} is missing its PYQ year.` }, 400);
     }
     const id = firstId + index;
+    const subject = normalizeSubject(question.subject) || (type === "questions" ? "General" : "");
     const data = {
       ...question,
       ...(type === "questions" ? { id } : {}),
+      subject,
       q: question.q.trim(),
       o: question.o.map((option) => String(option).trim()),
       a: Number(question.a),
     };
-    records.push({ id, question, data });
+    records.push({ id, question: { ...question, subject }, data });
   }
 
   for (let offset = 0; offset < records.length; offset += 50) {
@@ -56,10 +58,10 @@ export async function onRequestPost({ request, env }) {
       type === "pyqs"
         ? env.DB.prepare(
             "INSERT INTO pyq_questions (id, year, question_no, subject, source_file, data) VALUES (?, ?, ?, ?, ?, ?)",
-          ).bind(id, String(question.year).trim(), Number(question.no) || id, question.subject?.trim() || null, question.source_file?.trim() || null, JSON.stringify(data))
+          ).bind(id, String(question.year).trim(), Number(question.no) || id, data.subject || null, question.source_file?.trim() || null, JSON.stringify(data))
         : env.DB.prepare(
             "INSERT INTO questions (id, subject, chapter, difficulty, source, source_no, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          ).bind(id, question.subject?.trim() || "General", question.chapter?.trim() || null, question.difficulty?.trim() || "Moderate", question.source?.trim() || null, Number(question.sourceNo) || null, JSON.stringify(data)),
+          ).bind(id, data.subject, question.chapter?.trim() || null, question.difficulty?.trim() || "Moderate", question.source?.trim() || null, Number(question.sourceNo) || null, JSON.stringify(data)),
     );
     await env.DB.batch(batch);
   }

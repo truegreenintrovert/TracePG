@@ -1,5 +1,7 @@
+import { normalizeSubject } from "./subjects";
+
 export function getSubjects(questions) {
-  return [...new Set(questions.map((question) => question.subject))].sort(
+  return [...new Set(questions.map((question) => normalizeSubject(question.subject)))].sort(
     (a, b) => a.localeCompare(b),
   );
 }
@@ -7,7 +9,7 @@ export function getSubjects(questions) {
 export function getSubjectStats(questions, state) {
   return getSubjects(questions).map((subject) => {
     const subjectQuestions = questions.filter(
-      (question) => question.subject === subject,
+      (question) => normalizeSubject(question.subject) === subject,
     );
     const attempted = subjectQuestions.filter(
       (question) => state.attempts[question.id],
