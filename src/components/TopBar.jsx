@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FiActivity, FiChevronDown, FiChevronUp, FiClock, FiGlobe, FiLogOut, FiMenu, FiMoon, FiSun, FiUser, FiZap } from "react-icons/fi";
+import { FiActivity, FiArrowLeft, FiChevronDown, FiChevronUp, FiClock, FiGlobe, FiLogOut, FiMenu, FiMoon, FiSun, FiUser, FiZap } from "react-icons/fi";
 import BrandLogo from "./BrandLogo";
 
 const publicPages = [
@@ -10,24 +10,26 @@ const publicPages = [
   ["qa", "Q&A"],
 ];
 
-export default function TopBar({ setView, theme, setTheme, user, isAdmin, trialActive, testRunning, testTimeLabel, onSignOut, onUpgrade, onOpenProfile }) {
+export default function TopBar({ setView, theme, setTheme, user, isAdmin, trialActive, testRunning, testTimeLabel, sidebarVisible, sidebarCollapsed, sidebarWidth = 256, onSignOut, onUpgrade, onOpenProfile, publicMode = false, onSignIn, backHref = "/", onBack }) {
+  const sidebarOffset = sidebarVisible ? sidebarWidth : 0;
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-      <div className="mx-auto flex h-20 max-w-[1240px] items-center gap-3 px-4 sm:px-6 lg:px-10">
+    <header style={{ "--tracepg-sidebar-offset": `${sidebarOffset}px` }} className="topbar-sidebar-offset sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur transition-[margin] duration-300 ease-out dark:border-slate-800 dark:bg-slate-950/95">
+      <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-2 px-3 sm:h-20 sm:gap-3 sm:px-6 lg:px-10">
         {!testRunning && (
-          <button className="icon-button lg:hidden" aria-label="Open navigation" onClick={() => setView("menu")}><FiMenu size={21} /></button>
+          <button className="icon-button h-9 w-9 shrink-0 lg:hidden sm:h-10 sm:w-10" aria-label="Open navigation" onClick={() => setView("menu")}><FiMenu size={19} /></button>
         )}
 
-        <BrandLogo className="min-w-0" iconClassName="h-10 w-10 sm:h-12 sm:w-12" wordmarkClassName="h-6 w-auto max-w-[118px] sm:h-8 sm:max-w-[180px]" />
+        <BrandLogo className={`min-w-0 flex-1 ${sidebarVisible ? "lg:hidden" : ""}`} iconClassName="h-9 w-9 sm:h-12 sm:w-12" wordmarkClassName="h-5 w-auto max-w-[98px] sm:h-8 sm:max-w-[180px]" />
 
         {!testRunning && isAdmin && (
           <button className="ml-2 hidden items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-brand-300 hover:text-brand-600 sm:flex dark:border-slate-700 dark:text-slate-200" onClick={() => setView("admin")}><FiActivity size={16} /> Admin</button>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+          {publicMode && <a className="inline-flex h-9 w-9 shrink-0 items-center justify-center gap-1 rounded-xl px-0 py-2 text-xs font-bold text-brand-600 transition hover:bg-blue-50 hover:text-brand-700 sm:h-auto sm:w-auto sm:justify-start sm:gap-1.5 sm:px-3 sm:text-sm dark:hover:bg-blue-950/40" href={backHref} aria-label="Back to TracePG" title="Back to TracePG" onClick={onBack}><FiArrowLeft aria-hidden="true" /><span className="hidden sm:inline">Back</span></a>}
           {!testRunning && trialActive && <button className="hidden rounded-xl bg-brand-600 px-3 py-2 text-xs font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-brand-700 sm:inline-flex sm:px-4 sm:py-2.5 sm:text-sm dark:shadow-none" onClick={onUpgrade}>Upgrade</button>}
           <button
-            className="theme-icon-button"
+            className="theme-icon-button h-9 w-9 sm:h-10 sm:w-10"
             title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
             aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
@@ -41,7 +43,7 @@ export default function TopBar({ setView, theme, setTheme, user, isAdmin, trialA
               <span>{testTimeLabel || "00:00"}</span>
             </div>
           ) : (
-            <ProfileMenu user={user} setView={setView} trialActive={trialActive} onUpgrade={onUpgrade} onOpenProfile={onOpenProfile} onSignOut={onSignOut} />
+            publicMode && !user ? <button className="primary-button shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm" onClick={onSignIn}>Sign in</button> : <ProfileMenu user={user} setView={setView} trialActive={trialActive} onUpgrade={onUpgrade} onOpenProfile={onOpenProfile} onSignOut={onSignOut} />
           )}
         </div>
       </div>
@@ -88,7 +90,7 @@ function ProfileMenu({ user, setView, trialActive, onUpgrade, onOpenProfile, onS
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className="grid h-11 w-11 place-items-center rounded-full bg-brand-600 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 dark:shadow-none"
+        className="grid h-10 w-10 place-items-center rounded-full bg-brand-600 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 sm:h-11 sm:w-11 dark:shadow-none"
         aria-label="Open profile menu"
         aria-expanded={open}
         aria-haspopup="menu"
@@ -98,7 +100,7 @@ function ProfileMenu({ user, setView, trialActive, onUpgrade, onOpenProfile, onS
       </button>
 
       {open && (
-        <div className="absolute right-0 top-14 z-50 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-900" role="menu" aria-label="Profile menu">
+        <div className="motion-popover absolute right-0 top-14 z-50 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-700 dark:bg-slate-900" role="menu" aria-label="Profile menu">
           <div className="border-b border-slate-100 px-3 pb-3 pt-2 dark:border-slate-800">
             <p className="truncate text-sm font-black text-slate-950 dark:text-white">{displayName}</p>
             <p className="mt-0.5 truncate text-xs font-semibold text-slate-500 dark:text-slate-400">{user?.email}</p>

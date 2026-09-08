@@ -34,6 +34,20 @@ CREATE TABLE IF NOT EXISTS user_progress (
 CREATE INDEX IF NOT EXISTS idx_users_last_seen_at
   ON users(last_seen_at);
 
+-- One active browser session and one active mobile-app session per account.
+-- The app identifies itself with X-TracePG-Client: app; browser requests use web.
+CREATE TABLE IF NOT EXISTS device_sessions (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  client_type TEXT NOT NULL CHECK (client_type IN ('web', 'app')),
+  session_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  last_seen_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, client_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_device_sessions_last_seen_at
+  ON device_sessions(last_seen_at);
+
 -- Public study content is stored in D1 so it is not bundled into the frontend.
 -- The original object is kept as JSON to preserve the current question shape.
 CREATE TABLE IF NOT EXISTS questions (

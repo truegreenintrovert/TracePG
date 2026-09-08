@@ -45,7 +45,19 @@ export default function PremiumAccessScreen({ user, priceInr = 1000, trialAvaila
         form.appendChild(input);
       });
       document.body.appendChild(form);
+      let checkoutNavigated = false;
+      const markCheckoutNavigation = () => {
+        checkoutNavigated = true;
+      };
+      window.addEventListener("pagehide", markCheckoutNavigation, { once: true });
       form.submit();
+      window.setTimeout(() => {
+        if (checkoutNavigated) return;
+        window.removeEventListener("pagehide", markCheckoutNavigation);
+        form.remove();
+        setBusy(false);
+        setError("Secure checkout could not open. Please check the PayU test setup and try again.");
+      }, 20000);
     } catch (purchaseError) {
       setError(purchaseError.message);
       setBusy(false);

@@ -24,6 +24,7 @@ export const SUPPORT_CONTENT = {
     label: "About Us",
     title: "Built to make postgraduate medical preparation more focused.",
     intro: "TracePG brings high-yield practice, revision, and progress tracking into one calm study workspace for medical students and doctors preparing for postgraduate entrance exams.",
+    operatorName: "Yogesh Kumar Kashyap",
     contactEmail: "",
     contactPhone: "",
     supportHours: "",
@@ -33,6 +34,20 @@ export const SUPPORT_CONTENT = {
       ["Our approach", "We believe consistent, deliberate practice beats last-minute cramming. TracePG helps you turn a large question bank into a repeatable daily workflow with focused tests, review, analytics, and revision reminders."],
       ["What you can do here", "Practise topic-wise questions, work through previous-year questions, review every answer, save notes, track weak areas, and return to the questions that need another look."],
       ["Made for your preparation journey", "Your study history and progress stay connected to your account so you can build momentum over time and make each practice session more useful than the last."],
+    ],
+    teamMembers: [
+      {
+        name: "Yogesh Kumar Kashyap",
+        qualification: "Co Founder & Developer",
+        image: "/trace-logo-square.png",
+        summary: "Yogesh operates TracePG with a focus on building a dependable, student-first preparation workspace that makes practice, review, and progress easier to follow.",
+      },
+      {
+        name: "Madhav Chandrakar",
+        qualification: "MBBS, 3rd Yr Student · Founder",
+        image: "/trace-logo-square.png",
+        summary: "Madhav originated the core idea behind TracePG and helps shape the learning experience through thoughtful resource collection and a student’s perspective on postgraduate medical preparation.",
+      },
     ],
     faqs: [],
     updatedAt: null,

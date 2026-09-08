@@ -9,7 +9,100 @@ function json(body, status = 200, headers = {}) {
   });
 }
 
-export async function getAuthenticatedUser(request, env) {
+const DEVICE_SESSION_TTL_MS = 30 * 86400000;
+
+function getClientType(request) {
+  return String(request.headers.get('x-tracepg-client') || '').toLowerCase() === 'app' ? 'app' : 'web';
+}
+
+function decodeJwtPayload(token) {
+  try {
+    const encoded = token.split('.')[1];
+    if (!encoded) return null;
+    const base64 = encoded.replaceAll('-', '+').replaceAll('_', '/').padEnd(Math.ceil(encoded.length / 4) * 4, '=');
+    const binary = atob(base64);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
+function getSessionId(token, request) {
+  const tokenSessionId = decodeJwtPayload(token)?.session_id;
+  const clientSessionId = request.headers.get('x-tracepg-session')?.trim();
+  return String(tokenSessionId || clientSessionId || `token_${token.slice(-32)}`).slice(0, 160);
+}
+
+async function claimDeviceSession(env, userId, clientType, sessionId) {
+  if (!env.DB) return { ok: true };
+  const now = Date.now();
+  const staleBefore = now - DEVICE_SESSION_TTL_MS;
+  let current = await env.DB.prepare(
+    'SELECT session_id AS sessionId, last_seen_at AS lastSeenAt FROM device_sessions WHERE user_id = ? AND client_type = ?',
+  ).bind(userId, clientType).first();
+
+  if (!current) {
+    try {
+      await env.DB.prepare(
+        'INSERT INTO device_sessions (user_id, client_type, session_id, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?)',
+      ).bind(userId, clientType, sessionId, now, now).run();
+      return { ok: true };
+    } catch {
+      // Another request may have claimed the slot at the same time. Re-read it
+      // before deciding whether this session is allowed.
+      current = await env.DB.prepare(
+        'SELECT session_id AS sessionId, last_seen_at AS lastSeenAt FROM device_sessions WHERE user_id = ? AND client_type = ?',
+      ).bind(userId, clientType).first();
+    }
+  }
+
+  if (current?.sessionId === sessionId) {
+    await env.DB.prepare(
+      'UPDATE device_sessions SET last_seen_at = ? WHERE user_id = ? AND client_type = ? AND session_id = ?',
+    ).bind(now, userId, clientType, sessionId).run();
+    return { ok: true };
+  }
+
+  if (Number(current?.lastSeenAt || 0) < staleBefore) {
+    const replaced = await env.DB.prepare(
+      'UPDATE device_sessions SET session_id = ?, created_at = ?, last_seen_at = ? WHERE user_id = ? AND client_type = ? AND session_id = ?',
+    ).bind(sessionId, now, now, userId, clientType, current?.sessionId || '').run();
+    if (Number(replaced.meta?.changes || 0) === 1) return { ok: true };
+  }
+
+  const label = clientType === 'app' ? 'app' : 'web';
+  return {
+    ok: false,
+    error: json({
+      code: 'DEVICE_LIMIT_REACHED',
+      clientType,
+      error: `This account already has an active ${label} sign-in. Sign out from that ${label} device before signing in here.`,
+    }, 409),
+  };
+}
+
+export async function replaceDeviceSession(env, auth) {
+  if (!env.DB || !auth?.user?.id || !auth.sessionId) return;
+  const now = Date.now();
+  await env.DB.prepare(
+    `INSERT INTO device_sessions (user_id, client_type, session_id, created_at, last_seen_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(user_id, client_type) DO UPDATE SET
+       session_id = excluded.session_id,
+       created_at = excluded.created_at,
+       last_seen_at = excluded.last_seen_at`,
+  ).bind(auth.user.id, auth.clientType, auth.sessionId, now, now).run();
+}
+
+export async function releaseDeviceSession(env, auth) {
+  if (!env.DB || !auth?.user?.id || !auth.sessionId) return;
+  await env.DB.prepare(
+    'DELETE FROM device_sessions WHERE user_id = ? AND client_type = ? AND session_id = ?',
+  ).bind(auth.user.id, auth.clientType, auth.sessionId).run();
+}
+
+export async function getAuthenticatedUser(request, env, options = {}) {
   const authorization = request.headers.get('authorization') || '';
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
   if (!token || !env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) {
@@ -23,7 +116,18 @@ export async function getAuthenticatedUser(request, env) {
     },
   });
   if (!response.ok) return { error: json({ error: 'Invalid or expired session.' }, 401) };
-  return { user: await response.json() };
+  const user = await response.json();
+  if (env.DB) {
+    await touchUser(env, user);
+    const clientType = getClientType(request);
+    const sessionId = getSessionId(token, request);
+    if (!options.skipDeviceCheck) {
+      const claimed = await claimDeviceSession(env, user.id, clientType, sessionId);
+      if (!claimed.ok) return claimed;
+    }
+    return { user, clientType, sessionId };
+  }
+  return { user, clientType: getClientType(request), sessionId: getSessionId(token, request) };
 }
 
 export function isAdminUser(user, env) {

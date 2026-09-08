@@ -12,11 +12,12 @@ TracePG is a Node.js frontend for NEET-PG preparation, built with React, Vite, a
 - Cloudflare Pages Functions under `functions/api/`.
 - Cloudflare D1 storage for authenticated user profiles, progress, payment orders, and access entitlements.
 - Supabase Auth for email/password and Google sign-in; passwords never enter D1.
+- One active web session and one active mobile-app session per account.
 - Local-first behavior: the app still keeps a local copy and syncs it after sign-in.
 - One-time paid access flow with PayU; configured administrators bypass payment.
 - Debounced cloud writes so answering questions does not create one database write per click.
 
-The current identity model is anonymous per browser. It is appropriate for a first deployment or pilot, but it does not provide account recovery or cross-device access. Add an authentication provider before storing personally identifiable information or selling access.
+TracePG uses Supabase Auth for account identity and D1 for account-scoped profiles and progress. Local storage is namespaced by the authenticated user ID, so switching accounts on the same device does not expose another user's history.
 
 ## One-time setup
 
@@ -27,7 +28,7 @@ The current identity model is anonymous per browser. It is appropriate for a fir
 5. Create the tables locally with `npm run db:local`.
 6. Start the React frontend with `npm run dev`.
 7. Use `npm run build` to create the production bundle, or `npm run preview` to inspect it locally.
-8. Apply the same schema to production with `npm run db:remote`.
+8. Check production migration state with `npm run db:migrations:status`. Apply migrations only after reconciling the existing production database with the migration history; do not blindly replay seed migrations against a populated database.
 9. Add the Supabase runtime variables to the Pages project, then deploy with `npm run deploy`.
 
 ## Authentication setup
@@ -39,6 +40,13 @@ The current identity model is anonymous per browser. It is appropriate for a fir
 5. In Google Cloud, use the Supabase callback URL shown on the Google provider page as the OAuth redirect URI.
 
 The API verifies the Supabase bearer token before reading or writing D1 progress. The production schema includes `users` and `user_progress`; the existing anonymous tables are retained for a safe transition.
+
+### Device sign-in limits
+
+TracePG allows one active web session and one active app session per account. Browser API requests identify themselves
+with `X-TracePG-Client: web`; the Play Store app must send `X-TracePG-Client: app` with its authenticated API requests.
+Signing out releases that client slot. An unused slot is reclaimed after 30 days so an abandoned browser or deleted app
+does not permanently block the account.
 
 ## Admin panel
 
@@ -79,8 +87,10 @@ For around 1,000 active users, the design keeps the question bank in cacheable s
 
 ## Production checklist
 
-- Configure PayU test and live credentials and verify a complete payment in test mode.
-- Configure a custom domain and HTTPS.
-- Add a server-side rate limit at the edge.
+- Configure PayU test and live credentials and verify a complete payment in test mode and one controlled production payment.
+- Reconcile and record D1 migrations before making further schema changes.
+- Add a server-side rate limit at the edge for trial, feedback, admin, and billing endpoints.
 - Set up D1 backups/export and a basic error alert.
-- Load-test the API with 1,000 concurrent session reads and a realistic autosave cadence.
+- Add automated tests for account isolation, trial expiry, payment signatures, webhook replay, and discount limits.
+- Load-test the API with realistic question reads and autosave traffic.
+- Commit and tag each production release so Cloudflare deployments can be reproduced and rolled back.

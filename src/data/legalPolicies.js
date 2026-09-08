@@ -42,4 +42,17 @@ export const LEGAL_POLICIES = {
       ["Policy updates", "We may update this policy when our products, payment methods, or legal obligations change. The version published on this page is the current version."],
     ],
   },
+  shipping: {
+    path: "/shipping-policy",
+    label: "Shipping Policy",
+    title: "Digital access, delivered without delay.",
+    intro: "TracePG is a digital study platform. No physical products are shipped; your access is delivered electronically to your account.",
+    sections: [
+      ["Digital delivery", "After you sign in or complete an eligible purchase, TracePG access is provided electronically through your account at tracepg.com. There is no physical package or delivery address required."],
+      ["When access becomes available", "Access is normally available immediately after account activation or successful payment confirmation. If access does not appear, refresh your session and contact support with your account email and transaction details."],
+      ["No physical shipping charges", "Because TracePG provides digital study tools, there are no shipping fees, courier charges, or physical delivery timelines for the service."],
+      ["Access support", "If a payment is successful but the service is not available to you, contact support@tracepg.com. We will verify the account and payment status and help restore access."],
+      ["Policy updates", "We may update this policy when our delivery process or service changes. The version published on this page is the current version."],
+    ],
+  },
 };

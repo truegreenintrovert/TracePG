@@ -1,5 +1,6 @@
 const USER_STORE_PREFIX = "tracepg_user_v2:";
 import { supabase } from "./supabase";
+import { traceClientHeaders } from "./session";
 
 export const emptyState = {
   history: [],
@@ -142,5 +143,5 @@ async function authHeaders() {
   if (!supabase) throw new Error("Authentication is not configured.");
   const { data, error } = await supabase.auth.getSession();
   if (error || !data.session?.access_token) throw new Error("Sign in required.");
-  return { Authorization: `Bearer ${data.session.access_token}` };
+  return { Authorization: `Bearer ${data.session.access_token}`, ...traceClientHeaders() };
 }

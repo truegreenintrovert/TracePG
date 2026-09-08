@@ -15,7 +15,8 @@ export async function onRequestGet({ request, env }) {
 
     return json({ data: row ? JSON.parse(row.data) : null, updatedAt: row?.updatedAt || null });
   } catch (error) {
-    return json({ error: 'Unable to load progress.', detail: error.message }, 500);
+    console.error('progress_load_failed', error);
+    return json({ error: 'Unable to load progress.' }, 500);
   }
 }
 
@@ -51,6 +52,7 @@ export async function onRequestPut({ request, env }) {
 
     return json({ ok: true, updatedAt: now });
   } catch (error) {
-    return json({ error: 'Unable to save progress.', detail: error.message }, 500);
+    console.error('progress_save_failed', error);
+    return json({ error: 'Unable to save progress.' }, 500);
   }
 }

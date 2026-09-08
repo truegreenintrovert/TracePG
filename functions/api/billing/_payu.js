@@ -28,17 +28,45 @@ export async function processPayUResult(fields, env) {
 
   const success = String(fields.status).toLowerCase() === "success";
   const now = Date.now();
-  const statements = [
-    env.DB.prepare("UPDATE payment_orders SET status = ?, payment_id = ?, updated_at = ? WHERE id = ?").bind(success ? "verified" : "failed", fields.mihpayid || null, now, fields.txnid),
-  ];
-  if (success) {
-    statements.push(env.DB.prepare("INSERT INTO entitlements (user_id, status, provider, provider_order_id, provider_payment_id, amount, currency, created_at, updated_at) VALUES (?, 'active', 'payu', ?, ?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET status = 'active', provider = excluded.provider, provider_order_id = excluded.provider_order_id, provider_payment_id = excluded.provider_payment_id, amount = excluded.amount, currency = excluded.currency, updated_at = excluded.updated_at").bind(order.user_id, fields.txnid, fields.mihpayid || fields.txnid, order.amount, order.currency, now, now));
+
+  if (!success) {
+    await env.DB.prepare(
+      "UPDATE payment_orders SET status = 'failed', payment_id = ?, updated_at = ? WHERE id = ? AND status = 'created'",
+    ).bind(fields.mihpayid || null, now, fields.txnid).run();
+    const current = await env.DB.prepare("SELECT status FROM payment_orders WHERE id = ?").bind(fields.txnid).first();
+    return { ok: true, success: current?.status === "verified", userId: order.user_id };
+  }
+
+  // Claim the order first so a return callback and webhook cannot both grant access.
+  // A stale settling claim can be retried after a short failure window.
+  const staleSettlingBefore = now - 5 * 60 * 1000;
+  const claim = await env.DB.prepare(
+    "UPDATE payment_orders SET status = 'settling', payment_id = ?, updated_at = ? WHERE id = ? AND (status IN ('created', 'failed') OR (status = 'settling' AND updated_at < ?))",
+  ).bind(fields.mihpayid || fields.txnid, now, fields.txnid, staleSettlingBefore).run();
+
+  if (Number(claim.meta?.changes || 0) !== 1) {
+    const current = await env.DB.prepare("SELECT status FROM payment_orders WHERE id = ?").bind(fields.txnid).first();
+    return { ok: true, success: current?.status === "verified", processing: current?.status === "settling", userId: order.user_id };
+  }
+
+  try {
+    const statements = [
+      env.DB.prepare("INSERT INTO entitlements (user_id, status, provider, provider_order_id, provider_payment_id, amount, currency, created_at, updated_at) VALUES (?, 'active', 'payu', ?, ?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET status = 'active', provider = excluded.provider, provider_order_id = excluded.provider_order_id, provider_payment_id = excluded.provider_payment_id, amount = excluded.amount, currency = excluded.currency, updated_at = excluded.updated_at").bind(order.user_id, fields.txnid, fields.mihpayid || fields.txnid, order.amount, order.currency, now, now),
+    ];
     if (order.discount_code) {
       statements.push(env.DB.prepare("UPDATE discount_codes SET used_count = used_count + 1, updated_at = ? WHERE code = ?").bind(now, order.discount_code));
     }
+    statements.push(
+      env.DB.prepare("UPDATE payment_orders SET status = 'verified', updated_at = ? WHERE id = ? AND status = 'settling'").bind(now, fields.txnid),
+    );
+    await env.DB.batch(statements);
+    return { ok: true, success: true, userId: order.user_id };
+  } catch (error) {
+    await env.DB.prepare(
+      "UPDATE payment_orders SET status = 'created', updated_at = ? WHERE id = ? AND status = 'settling'",
+    ).bind(Date.now(), fields.txnid).run().catch(() => {});
+    throw error;
   }
-  await env.DB.batch(statements);
-  return { ok: true, success, userId: order.user_id };
 }
 
 export function resultRedirect(request, env, status, message = "") {

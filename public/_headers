@@ -1,8 +1,9 @@
 /*
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
+    X-Content-Type-Options: nosniff
+    X-Frame-Options: DENY
+    Referrer-Policy: strict-origin-when-cross-origin
+    Permissions-Policy: camera=(), microphone=(), geolocation=()
+    Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://*.payu.in https://*.payubiz.in https://static.cloudflareinsights.com; worker-src 'self' blob:; frame-src 'self' https://*.supabase.co https://*.payu.in https://*.payubiz.in; form-action 'self' https://*.payu.in https://*.payubiz.in; upgrade-insecure-requests
 
 /index.html
   Cache-Control: no-store, must-revalidate

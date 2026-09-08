@@ -6,7 +6,7 @@ import SiteFooter from "./SiteFooter";
 import SEO from "./SEO";
 import BrandLogo from "./BrandLogo";
 
-export default function AuthScreen({ onPasswordRecovery, onBack }) {
+export default function AuthScreen({ onPasswordRecovery, onBack, notice = "" }) {
   const [mode, setMode] = useState("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -194,8 +194,9 @@ export default function AuthScreen({ onPasswordRecovery, onBack }) {
           </label>
         )}
 
-        {error && <p className="rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}
-        {message && <p className="rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">{message}</p>}
+      {error && <p className="rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}
+      {message && <p className="rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">{message}</p>}
+      {!error && !message && notice && <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">{notice}</p>}
 
         <button className="primary-button w-full" disabled={busy}>
           {busy ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : mode === "forgot" ? (resetStep ? "Verify reset code" : "Send reset code") : otpStep ? "Verify code" : "Send email code"}

@@ -8,11 +8,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "node --test",
     "preview": "vite preview",
     "dev:serverless": "wrangler pages dev dist",
     "deploy": "npm run build && wrangler pages deploy dist --project-name tracepg --branch main",
     "db:local": "wrangler d1 execute tracepg --local --file=schema.sql",
     "db:remote": "wrangler d1 execute tracepg --remote --file=schema.sql",
+    "db:migrations:status": "wrangler d1 migrations list tracepg --remote",
     "seed:questions": "node scripts/generate-question-seed.mjs",
     "seed:policies": "node scripts/generate-policy-seed.mjs",
     "seed:legacy-years": "node scripts/generate-legacy-pyq-migration.mjs"

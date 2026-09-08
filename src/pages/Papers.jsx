@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { FiTarget } from "react-icons/fi";
 import { shuffle } from "../lib/study";
 
+const PYQ_PAPER_SIZE = 100;
+
 export default function Papers({ papers, onStart }) {
   const years = [...new Set(papers.map((item) => item.year))].sort(
     (a, b) => Number(a) - Number(b),
@@ -56,7 +58,7 @@ export default function Papers({ papers, onStart }) {
             onClick={() =>
               onStart(
                 shuffle(filtered)
-                  .slice(0, 50)
+                  .slice(0, PYQ_PAPER_SIZE)
                   .map((item, index) => ({
                     ...item,
                     id: `pyq-${year}-${index}`,
@@ -65,6 +67,7 @@ export default function Papers({ papers, onStart }) {
                     a: Number(item.a),
                   })),
                 "NEET-PG " + year,
+                PYQ_PAPER_SIZE,
               )
             }
           >

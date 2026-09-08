@@ -12,6 +12,7 @@ export default function SiteFooter() {
           <a className="transition hover:text-brand-600" href="/privacy">Privacy Policy</a>
           <a className="transition hover:text-brand-600" href="/terms">Terms of Service</a>
           <a className="transition hover:text-brand-600" href="/refund-policy">Refund Policy</a>
+          <a className="transition hover:text-brand-600" href="/shipping-policy">Shipping Policy</a>
         </nav>
       </div>
     </footer>

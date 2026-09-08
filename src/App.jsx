@@ -17,6 +17,7 @@ import TestReview from "./pages/TestReview";
 import FeedbackPage from "./pages/FeedbackPage";
 import PublicHome from "./pages/PublicHome";
 import SupportPage from "./pages/SupportPage";
+import ProductPage from "./pages/ProductPage";
 import PremiumAccessScreen from "./components/PremiumAccessScreen";
 import SEO from "./components/SEO";
 import {
@@ -30,8 +31,9 @@ import {
 import { getDueQuestions, getSubjectStats, shuffle } from "./lib/study";
 import AuthScreen, { ConfirmEmailScreen, ResetPasswordScreen } from "./components/AuthScreen";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
+import { releaseTraceSession } from "./lib/session";
 import { getSupportPage } from "./data/supportContent";
-import { authHeaders } from "./lib/adminApi";
+import { authHeaders, refreshAuthSession } from "./lib/adminApi";
 import { normalizeSubject } from "./lib/subjects";
 import { FiActivity, FiAlertTriangle, FiLock } from "react-icons/fi";
 
@@ -89,6 +91,11 @@ export default function App() {
   const [hasAccess, setHasAccess] = useState(false);
   const [accessInfo, setAccessInfo] = useState({ priceInr: 1000, currency: "INR" });
   const [accessError, setAccessError] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
+  const [deviceConflict, setDeviceConflict] = useState("");
+  const [sessionRefreshKey, setSessionRefreshKey] = useState(0);
+  const [sessionActionBusy, setSessionActionBusy] = useState(false);
+  const [sessionActionError, setSessionActionError] = useState("");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const userId = user?.id || null;
   const activeState = stateUserId === userId ? state : emptyState;
@@ -115,8 +122,10 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       const nextView = viewFromPath(window.location.pathname);
-      if (activeTest && nextView !== "test") {
-        window.history.pushState({ view: "test" }, "", VIEW_PATHS.test);
+      if (activeTest) {
+        // Keep every browser-back attempt inside the active test. This also
+        // handles repeated back presses when the previous route was sign-in.
+        window.history.pushState({ view: "test", tracepgTestGuard: true }, "", VIEW_PATHS.test);
         setViewState("test");
         setTestExitPrompt(true);
         return;
@@ -150,6 +159,7 @@ export default function App() {
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted) {
         setUser(session?.user || null);
+        if (session) setAuthNotice("");
         if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
       }
     });
@@ -167,16 +177,7 @@ export default function App() {
     }
     let mounted = true;
     setAdminStatus("checking");
-    supabase.auth.getSession().then(({ data }) => {
-      const token = data.session?.access_token;
-      if (!token) {
-        if (mounted) {
-          setIsAdmin(false);
-          setAdminStatus("ready");
-        }
-        return;
-      }
-      fetch("/api/admin/me", { headers: { Authorization: `Bearer ${token}` } })
+    authHeaders().then((headers) => fetch("/api/admin/me", { headers }))
         .then((response) => response.ok)
         .then((allowed) => {
           if (mounted) {
@@ -190,7 +191,6 @@ export default function App() {
             setAdminStatus("ready");
           }
         });
-    });
     return () => {
       mounted = false;
     };
@@ -204,34 +204,96 @@ export default function App() {
       return undefined;
     }
     let mounted = true;
-    setAccessLoading(true);
-    setAccessError("");
-    authHeaders()
-      .then((headers) => fetch("/api/access", { headers }))
-      .then(async (response) => {
+    const refreshAccess = async ({ initial = false } = {}) => {
+      if (initial) {
+        setAccessLoading(true);
+        setAccessError("");
+      }
+      try {
+        let headers = await authHeaders();
+        let response = await fetch("/api/access", { headers, cache: "no-store" });
+        if (response.status === 401) {
+          await refreshAuthSession();
+          headers = await authHeaders();
+          response = await fetch("/api/access", { headers, cache: "no-store" });
+        }
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || "Unable to check purchase access.");
-        return payload;
-      })
-      .then((payload) => {
+        if (!response.ok) {
+          const requestError = new Error(payload.error || "Unable to check purchase access.");
+          requestError.code = payload.code;
+          requestError.status = response.status;
+          throw requestError;
+        }
         if (!mounted) return;
         setHasAccess(Boolean(payload.hasAccess));
         setAccessInfo(payload);
+        setDeviceConflict("");
         if (payload.isAdmin) setIsAdmin(true);
-      })
-      .catch((error) => {
-        if (mounted) {
+      } catch (error) {
+        if (error.code === "DEVICE_LIMIT_REACHED") {
+          setDeviceConflict(error.message);
+          setHasAccess(false);
+          return;
+        }
+        if (mounted && initial) {
           setHasAccess(false);
           setAccessError(error.message || "Unable to check purchase access.");
         }
-      })
-      .finally(() => {
-        if (mounted) setAccessLoading(false);
-      });
+      } finally {
+        if (mounted && initial) setAccessLoading(false);
+      }
+    };
+
+    refreshAccess({ initial: true });
+
+    // PayU may finish its webhook a moment after redirecting back. Recheck
+    // briefly so the account unlocks without requiring a logout/login cycle.
+    const paymentStatus = new URLSearchParams(window.location.search).get("payment");
+    let retryTimer;
+    if (paymentStatus === "success") {
+      let attempts = 0;
+      retryTimer = window.setInterval(() => {
+        attempts += 1;
+        refreshAccess();
+        if (attempts >= 10) window.clearInterval(retryTimer);
+      }, 1500);
+    }
+
+    const handleFocus = () => refreshAccess();
+    window.addEventListener("focus", handleFocus);
     return () => {
       mounted = false;
+      window.removeEventListener("focus", handleFocus);
+      if (retryTimer) window.clearInterval(retryTimer);
     };
-  }, [user]);
+  }, [user, sessionRefreshKey]);
+
+  const signOut = async () => {
+    setDeviceConflict("");
+    await releaseTraceSession();
+    await supabase?.auth.signOut();
+  };
+
+  const replaceDeviceSession = async () => {
+    setSessionActionBusy(true);
+    setSessionActionError("");
+    try {
+      const headers = await authHeaders();
+      const response = await fetch("/api/session", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify({ force: true }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Unable to switch this account to the current device.");
+      setDeviceConflict("");
+      setSessionRefreshKey((current) => current + 1);
+    } catch (error) {
+      setSessionActionError(error.message || "Unable to switch devices. Please try again.");
+    } finally {
+      setSessionActionBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!user || (!hasAccess && !isAdmin)) {
@@ -307,11 +369,13 @@ export default function App() {
   }, [state, hydrated, userId, stateUserId]);
 
   if (legalPage) {
-    return <LegalPage policy={legalPage} />;
+    return <LegalPage policy={legalPage} user={user} theme={theme} setTheme={setTheme} onNavigate={user ? setView : undefined} onSignIn={() => setView("signIn")} trialActive={Boolean(accessInfo.trialActive)} onUpgrade={() => setUpgradeOpen(true)} onSignOut={signOut} isAdmin={isAdmin} view={view} />;
   }
 
   if (publicSupportPage) {
-    return <SupportPage page={publicSupportPage} onNavigate={user ? setView : undefined} />;
+    const publicProps = { user, theme, setTheme, onNavigate: user ? setView : undefined, onSignIn: () => setView("signIn"), trialActive: Boolean(accessInfo.trialActive), onUpgrade: () => setUpgradeOpen(true), onSignOut: signOut, isAdmin, view };
+    if (publicSupportPage.slug === "product") return <ProductPage {...publicProps} />;
+    return <SupportPage page={publicSupportPage} {...publicProps} />;
   }
 
   if (authLoading) {
@@ -340,13 +404,25 @@ export default function App() {
     );
   }
 
+  if (user && deviceConflict) {
+    return (
+      <DeviceConflictScreen
+        message={deviceConflict}
+        busy={sessionActionBusy}
+        error={sessionActionError}
+        onReplace={replaceDeviceSession}
+        onSignOut={signOut}
+      />
+    );
+  }
+
   if (!isSupabaseConfigured) {
     return <AuthScreen onPasswordRecovery={() => setPasswordRecovery(true)} />;
   }
 
   if (!user) {
     if (view === "signIn") {
-      return <AuthScreen onPasswordRecovery={() => setPasswordRecovery(true)} onBack={() => setView("home", { replace: true })} />;
+      return <AuthScreen notice={authNotice} onPasswordRecovery={() => setPasswordRecovery(true)} onBack={() => setView("home", { replace: true })} />;
     }
     return <PublicHome onSignIn={() => setView("signIn")} />;
   }
@@ -364,8 +440,32 @@ export default function App() {
       ...current,
       notes: { ...current.notes, [id]: note },
     }));
-  const startTest = (questions, title) => {
-    const durationSeconds = questions.length * 60;
+
+  if (view === "review" && lastResult) {
+    return (
+      <>
+        <SEO title={`Review · ${lastResult.title} | TracePG`} description="Review your TracePG test answers and explanations." noindex path={VIEW_PATHS.review} />
+        <TestReview
+          result={lastResult}
+          state={activeState}
+          onSaveNote={saveNote}
+          onBack={() => setView("result", { replace: true })}
+          view={view}
+          setView={setView}
+          isAdmin={isAdmin}
+          theme={theme}
+          setTheme={setTheme}
+          user={user}
+          trialActive={Boolean(accessInfo.trialActive)}
+          onSignOut={signOut}
+          onUpgrade={() => setView("home")}
+        />
+      </>
+    );
+  }
+
+  const startTest = (questions, title, durationMinutes = questions.length) => {
+    const durationSeconds = durationMinutes * 60;
     setTestTimeLabel(formatTestTime(durationSeconds));
     setActiveTest({ id: createTestId(), questions, title, endAt: Date.now() + durationSeconds * 1000 });
     setView("test");
@@ -545,7 +645,7 @@ export default function App() {
     if (view === "admin" && !isAdmin)
       return <div className="surface-card mx-auto mt-10 max-w-lg text-center"><FiLock className="mx-auto text-4xl text-slate-400" aria-hidden="true" /><h2 className="mt-3 text-xl font-black">Admin access required</h2><p className="mt-2 text-sm text-slate-500">Your account is not configured as a TracePG administrator.</p><p className="mt-3 break-all text-xs font-semibold text-slate-400">Signed in as: {user?.email || "unknown email"}</p><button className="primary-button mt-5" onClick={() => setView("home")}>Back to dashboard</button></div>;
     if (view === "admin") return <AdminPanel onBack={() => setView("home")} />;
-    if (view === "product") return <SupportPage page={getSupportPage("/product")} onNavigate={setView} />;
+    if (view === "product") return <ProductPage onNavigate={setView} />;
     if (view === "about") return <SupportPage page={getSupportPage("/about-us")} onNavigate={setView} />;
     if (view === "contact") return <SupportPage page={getSupportPage("/contact-us")} onNavigate={setView} />;
     if (view === "help") return <SupportPage page={getSupportPage("/help-support")} onNavigate={setView} />;
@@ -597,7 +697,7 @@ export default function App() {
       testTimeLabel={testTimeLabel}
       testExitPrompt={testExitPrompt}
       onContinueTest={() => setTestExitPrompt(false)}
-      onSignOut={() => supabase.auth.signOut()}
+      onSignOut={signOut}
       onUpgrade={() => setUpgradeOpen(true)}
     >
       <SEO title="TracePG Study Workspace" description="Your private TracePG NEET-PG study workspace." noindex path={VIEW_PATHS[view] || "/"} />
@@ -622,6 +722,28 @@ function LoadingScreen({ label }) {
         <p className="mt-3 text-sm font-semibold text-slate-500">{label}</p>
       </div>
     </div>
+  );
+}
+
+function DeviceConflictScreen({ message, busy, error, onReplace, onSignOut }) {
+  return (
+    <main className="grid min-h-screen place-items-center bg-slate-50 px-4 py-8 dark:bg-slate-950">
+      <section className="w-full max-w-lg rounded-3xl border border-amber-200 bg-white p-7 shadow-soft dark:border-amber-900/60 dark:bg-slate-900 sm:p-9">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-amber-100 text-2xl text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+          <FiLock aria-hidden="true" />
+        </div>
+        <h1 className="mt-6 text-2xl font-black tracking-tight text-slate-950 dark:text-white">This account is already signed in</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{message}</p>
+        <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">You can end the TracePG session on the other device and continue on this device.</p>
+        {error && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}
+        <button className="primary-button mt-6 w-full" onClick={onReplace} disabled={busy}>
+          {busy ? "Switching device…" : "Log out other device and continue here"}
+        </button>
+        <button className="mt-3 w-full text-sm font-bold text-slate-500 hover:text-brand-600 dark:text-slate-400" onClick={onSignOut} disabled={busy}>
+          Sign out here
+        </button>
+      </section>
+    </main>
   );
 }
 

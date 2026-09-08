@@ -1,11 +1,15 @@
+import { useState } from "react";
 import SiteFooter from "../components/SiteFooter";
 import SEO, { SITE_URL } from "../components/SEO";
-import BrandLogo from "../components/BrandLogo";
+import PublicHeader from "../components/PublicHeader";
+import PublicSidebar from "../components/PublicSidebar";
 import { FiArrowRight, FiBarChart2, FiBookOpen, FiClock } from "react-icons/fi";
 
 export default function PublicHome({ onSignIn }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+    <div className="page-transition min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
       <SEO
         title="TracePG | NEET-PG preparation workspace"
         description="Prepare for NEET-PG with focused question practice, previous-year questions, revision tools, and progress tracking."
@@ -15,22 +19,8 @@ export default function PublicHome({ onSignIn }) {
           { "@context": "https://schema.org", "@type": "WebSite", name: "TracePG", url: SITE_URL, description: "Focused NEET-PG question practice, PYQs, revision, and progress tracking." },
         ]}
       />
-      <header className="border-b border-slate-200/80 bg-white/90 dark:border-slate-800 dark:bg-slate-950/90">
-        <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-5 px-4 py-4 sm:px-6 lg:px-10">
-          <a href="/" aria-label="TracePG home">
-            <BrandLogo iconClassName="h-10 w-10" wordmarkClassName="h-7 w-auto max-w-[175px]" />
-          </a>
-          <nav className="hidden items-center gap-5 text-sm font-bold text-slate-600 md:flex dark:text-slate-300" aria-label="Public navigation">
-            <a className="transition hover:text-brand-600" href="/product">Product</a>
-            <a className="transition hover:text-brand-600" href="/about-us">About Us</a>
-            <a className="transition hover:text-brand-600" href="/contact-us">Contact Us</a>
-            <a className="transition hover:text-brand-600" href="/help-support">Help &amp; Support</a>
-            <a className="transition hover:text-brand-600" href="/terms">Terms</a>
-            <a className="transition hover:text-brand-600" href="/refund-policy">Refunds</a>
-          </nav>
-          <button className="primary-button inline-flex items-center gap-2" onClick={onSignIn}>Sign in <FiArrowRight aria-hidden="true" /></button>
-        </div>
-      </header>
+      <PublicHeader onSignIn={onSignIn} onMenu={() => setSidebarOpen(true)} />
+      {sidebarOpen && <div className="fixed inset-0 z-[60] lg:hidden"><button className="motion-backdrop absolute inset-0 h-full w-full bg-slate-950/40" aria-label="Close public navigation" onClick={() => setSidebarOpen(false)} /><aside className="motion-drawer scrollbar-invisible absolute inset-y-0 left-0 w-72 overflow-y-auto border-r border-slate-200 bg-white px-4 py-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950"><PublicSidebar view="home" onNavigate={(nextView) => { setSidebarOpen(false); window.location.assign({ home: "/", product: "/product", about: "/about-us", contact: "/contact-us", help: "/help-support", qa: "/qa" }[nextView] || "/"); }} closeOnSelect onClose={() => setSidebarOpen(false)} /></aside></div>}
 
       <main>
         <section className="mx-auto grid max-w-[1240px] gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:px-10 lg:py-28">

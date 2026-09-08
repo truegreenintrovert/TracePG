@@ -1,10 +1,30 @@
 import { supabase } from "./supabase";
+import { traceClientHeaders } from "./session";
+
+async function getFreshSession() {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  let session = data.session;
+  const expiresAt = Number(session?.expires_at || 0) * 1000;
+  if (session && expiresAt > 0 && expiresAt <= Date.now() + 60_000) {
+    const refreshed = await supabase.auth.refreshSession();
+    if (!refreshed.error && refreshed.data.session) session = refreshed.data.session;
+  }
+  return session;
+}
 
 export async function authHeaders() {
   if (!supabase) throw new Error("Authentication is not configured.");
-  const { data, error } = await supabase.auth.getSession();
-  if (error || !data.session?.access_token) throw new Error("Sign in required.");
-  return { Authorization: `Bearer ${data.session.access_token}` };
+  const session = await getFreshSession();
+  if (!session?.access_token) throw new Error("Sign in required.");
+  return { Authorization: `Bearer ${session.access_token}`, ...traceClientHeaders() };
+}
+
+export async function refreshAuthSession() {
+  if (!supabase) throw new Error("Authentication is not configured.");
+  const { data, error } = await supabase.auth.refreshSession();
+  if (error || !data.session) throw error || new Error("Your session has expired. Please sign in again.");
+  return data.session;
 }
 
 export async function adminFetch(path, options = {}) {
