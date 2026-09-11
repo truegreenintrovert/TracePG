@@ -1,5 +1,6 @@
 import { getAuthenticatedUser, hasLifetimeAccess, isAdminUser, json, touchUser } from "../_shared.js";
 import { getDiscountQuote } from "./_discount.js";
+import { getPlan } from "./_plans.js";
 
 async function sha512(value) {
   const digest = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(value));
@@ -17,10 +18,12 @@ export async function onRequestPost({ request, env }) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const priceInr = Math.max(1, Number(env.TRACEPG_PRICE_INR || 1000));
+  const plan = getPlan(body.planId || "lifetime");
+  if (!plan) return json({ error: "Please select a valid access plan." }, 400);
+  const priceInr = plan.priceInr;
   const quote = await getDiscountQuote(env, body.discountCode, priceInr);
   if (quote.error) return json({ error: quote.error }, 400);
-  if (body.preview) return json({ hasAccess: false, priceInr, amount: quote.amount, discountCode: quote.code, discountAmount: quote.discountAmount, discountType: quote.discountType || null, discountValue: quote.discountValue || 0 });
+  if (body.preview) return json({ hasAccess: false, planId: plan.id, planLabel: plan.label, priceInr, amount: quote.amount, discountCode: quote.code, discountAmount: quote.discountAmount, discountType: quote.discountType || null, discountValue: quote.discountValue || 0 });
 
   if (!env.PAYU_KEY || !env.PAYU_SALT) {
     return json({ error: "Payment setup is incomplete. Add the PayU key and salt first." }, 503);
@@ -30,7 +33,7 @@ export async function onRequestPost({ request, env }) {
 
   const amount = quote.amount.toFixed(2);
   const txnid = `tp_${Date.now()}_${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}`;
-  const productinfo = "TracePG lifetime access";
+  const productinfo = `TracePG ${plan.label.toLowerCase()} access`;
   const firstname = clean(auth.user.user_metadata?.full_name || auth.user.user_metadata?.name || "TracePG User").slice(0, 60);
   const email = clean(auth.user.email).slice(0, 120);
   const phone = clean(auth.user.phone || "9999999999").replace(/[^0-9+]/g, "").slice(0, 15) || "9999999999";
@@ -41,8 +44,8 @@ export async function onRequestPost({ request, env }) {
   const callbackUrl = `${baseUrl}/api/billing/response`;
   const now = Date.now();
   await env.DB.prepare(
-    "INSERT INTO payment_orders (id, user_id, amount, currency, status, discount_code, created_at, updated_at) VALUES (?, ?, ?, 'INR', 'created', ?, ?, ?)",
-  ).bind(txnid, auth.user.id, amount, quote.code || null, now, now).run();
+    "INSERT INTO payment_orders (id, user_id, amount, currency, status, discount_code, plan_id, created_at, updated_at) VALUES (?, ?, ?, 'INR', 'created', ?, ?, ?, ?)",
+  ).bind(txnid, auth.user.id, amount, quote.code || null, plan.id, now, now).run();
 
   return json({
     hasAccess: false,
@@ -51,6 +54,8 @@ export async function onRequestPost({ request, env }) {
     txnid,
     amount,
     priceInr,
+    planId: plan.id,
+    planLabel: plan.label,
     discountCode: quote.code,
     discountAmount: quote.discountAmount,
     fields: {

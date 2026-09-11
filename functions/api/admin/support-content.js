@@ -6,11 +6,21 @@ function validText(value, max = 5000) {
   return typeof value === "string" && value.trim().length > 0 && value.length <= max;
 }
 
+function validTeamMembers(value) {
+  return Array.isArray(value) && value.every((member) => member
+    && validText(member.name, 160)
+    && validText(member.qualification, 200)
+    && validText(member.image, 1000)
+    && validText(member.summary, 5000));
+}
+
 function validatePage(body) {
   if (!body || !allowedSlugs.has(body.slug)) return "A valid public page is required.";
   if (!validText(body.label, 120) || !validText(body.title, 200) || !validText(body.intro, 5000)) return "Label, title, and introduction are required.";
   if (!Array.isArray(body.sections) || body.sections.some((section) => !Array.isArray(section) || section.length !== 2 || !validText(section[0], 200) || !validText(section[1], 5000))) return "Each guidance section needs a heading and body.";
   if (!Array.isArray(body.faqs) || body.faqs.some((faq) => !faq || !validText(faq.question, 500) || !validText(faq.answer, 5000))) return "Each Q&A entry needs a question and answer.";
+  if (body.operatorName !== undefined && body.operatorName !== "" && !validText(body.operatorName, 200)) return "The operator name is invalid.";
+  if (body.teamMembers !== undefined && !validTeamMembers(body.teamMembers)) return "Each team member needs a name, qualification, image, and summary.";
   return null;
 }
 
@@ -25,6 +35,13 @@ function cleanPage(body) {
     supportHours: String(body.supportHours || "").trim().slice(0, 300),
     supportCtaLabel: String(body.supportCtaLabel || "").trim().slice(0, 120),
     supportCtaUrl: String(body.supportCtaUrl || "").trim().slice(0, 1000),
+    operatorName: String(body.operatorName || "").trim().slice(0, 200),
+    teamMembers: (body.teamMembers || []).map((member) => ({
+      name: member.name.trim(),
+      qualification: member.qualification.trim(),
+      image: member.image.trim(),
+      summary: member.summary.trim(),
+    })),
     sections: body.sections.map(([heading, content]) => [heading.trim(), content.trim()]),
     faqs: body.faqs.map((faq) => ({
       category: String(faq.category || "General").trim().slice(0, 120),
@@ -45,6 +62,8 @@ function responsePage(row) {
     supportHours: row.support_hours || "",
     supportCtaLabel: row.support_cta_label || "",
     supportCtaUrl: row.support_cta_url || "",
+    operatorName: row.operator_name || "",
+    teamMembers: JSON.parse(row.team_members || "[]"),
     sections: JSON.parse(row.sections || "[]"),
     faqs: JSON.parse(row.faqs || "[]"),
     updatedAt: row.updated_at,
@@ -67,8 +86,8 @@ export async function onRequestPut({ request, env }) {
   const page = cleanPage(body);
   const now = Date.now();
   await env.DB.prepare(`
-    INSERT INTO support_pages (slug, label, title, intro, contact_email, contact_phone, support_hours, support_cta_label, support_cta_url, sections, faqs, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO support_pages (slug, label, title, intro, contact_email, contact_phone, support_hours, support_cta_label, support_cta_url, operator_name, team_members, sections, faqs, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(slug) DO UPDATE SET
       label = excluded.label,
       title = excluded.title,
@@ -78,6 +97,8 @@ export async function onRequestPut({ request, env }) {
       support_hours = excluded.support_hours,
       support_cta_label = excluded.support_cta_label,
       support_cta_url = excluded.support_cta_url,
+      operator_name = excluded.operator_name,
+      team_members = excluded.team_members,
       sections = excluded.sections,
       faqs = excluded.faqs,
       updated_at = excluded.updated_at
@@ -91,6 +112,8 @@ export async function onRequestPut({ request, env }) {
     page.supportHours,
     page.supportCtaLabel,
     page.supportCtaUrl,
+    page.operatorName,
+    JSON.stringify(page.teamMembers),
     JSON.stringify(page.sections),
     JSON.stringify(page.faqs),
     now,

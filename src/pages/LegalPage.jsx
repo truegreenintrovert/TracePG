@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FiArrowRight, FiCheckCircle, FiClock, FiFileText, FiRefreshCw, FiShield, FiTruck } from "react-icons/fi";
+import { FiArrowRight, FiCheckCircle, FiClock, FiFileText, FiRefreshCw, FiShield, FiTruck, FiXCircle } from "react-icons/fi";
 import SiteFooter from "../components/SiteFooter";
 import SEO, { SITE_URL } from "../components/SEO";
 import { LEGAL_POLICIES } from "../data/legalPolicies";
@@ -10,6 +10,7 @@ export function getLegalPage(pathname) {
   if (pathname === "/terms") return LEGAL_POLICIES.terms;
   if (pathname === "/refund-policy") return LEGAL_POLICIES.refund;
   if (pathname === "/shipping-policy") return LEGAL_POLICIES.shipping;
+  if (pathname === "/cancellation-policy") return LEGAL_POLICIES.cancellation;
   return null;
 }
 
@@ -18,6 +19,7 @@ const POLICY_META = {
   terms: { badge: "Using TracePG", icon: FiFileText, sideTitle: "A fair study workspace", sideBody: "The simple rules that keep TracePG useful, respectful, and reliable for every learner." },
   refund: { badge: "Payments & refunds", icon: FiRefreshCw, sideTitle: "Clear payment guidance", sideBody: "Understand how refund requests are reviewed and what information helps us respond quickly." },
   shipping: { badge: "Digital delivery", icon: FiTruck, sideTitle: "Access, delivered digitally", sideBody: "TracePG is a digital service, so there are no physical products, shipping charges, or delivery addresses." },
+  cancellation: { badge: "Digital product", icon: FiXCircle, sideTitle: "No order cancellation", sideBody: "TracePG access is delivered digitally, so completed purchases cannot be cancelled." },
 };
 
 export default function LegalPage({ policy, user, theme, setTheme, onNavigate, onSignIn, onSignOut, onUpgrade, isAdmin, trialActive, view }) {
@@ -25,10 +27,11 @@ export default function LegalPage({ policy, user, theme, setTheme, onNavigate, o
 
   useEffect(() => {
     let mounted = true;
-    fetch(`/api/policies?slug=${encodeURIComponent(policy.path.slice(1))}`)
+    const policySlug = policy.slug || ({ "/refund-policy": "refund", "/shipping-policy": "shipping", "/cancellation-policy": "cancellation" }[policy.path] || policy.path.slice(1));
+    fetch(`/api/policies?slug=${encodeURIComponent(policySlug)}`)
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
-        if (mounted && payload?.policy) setCurrent({ ...policy, ...payload.policy });
+        if (mounted && payload?.policy) setCurrent({ ...policy, ...payload.policy, path: policy.path });
       })
       .catch(() => undefined);
     return () => {

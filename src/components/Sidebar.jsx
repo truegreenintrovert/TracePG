@@ -63,7 +63,10 @@ export default function Sidebar({
       </div>
       <nav className="space-y-1" aria-label="Main navigation">
         {navigation.map(([id, Icon, label]) => renderNavigationItem(id, Icon, label))}
-        {isAdmin && renderNavigationItem("admin", FiActivity, "Admin panel")}
+        {isAdmin && <>
+          <div className="my-4 border-t border-slate-200 dark:border-slate-800" />
+          {renderNavigationItem("admin", FiActivity, "Admin Dashboard")}
+        </>}
       </nav>
     </div>
   );

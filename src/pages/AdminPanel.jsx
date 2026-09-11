@@ -29,8 +29,19 @@ const emptyPyq = {
   image_based: false,
 };
 
-export default function AdminPanel({ onBack }) {
-  const [tab, setTab] = useState("questions");
+const pageCopy = {
+  questions: ["Add question", "Create a new question for the main study bank."],
+  pyqs: ["Add PYQ", "Create a previous-year question and map it to its paper."],
+  bulk: ["Bulk upload", "Import questions and PYQs using the supported templates."],
+  support: ["Public pages", "Manage the product and support pages shown to visitors."],
+  policies: ["Edit policies", "Keep the legal policies current and clear."],
+  discounts: ["Discount codes", "Create and manage the offers available at checkout."],
+  feedback: ["Feedback", "Review learner feedback and support requests."],
+};
+
+export default function AdminPanel({ onBack, initialTab = "questions" }) {
+  const tab = initialTab;
+  const [title, description] = pageCopy[tab] || pageCopy.questions;
   const [question, setQuestion] = useState(emptyQuestion);
   const [pyq, setPyq] = useState(emptyPyq);
   const [policies, setPolicies] = useState([]);
@@ -119,31 +130,16 @@ export default function AdminPanel({ onBack }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[.2em] text-brand-600">Restricted workspace</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Admin panel</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Manage study content and the public pages shown to visitors.</p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{title}</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{description}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button className="primary-button" onClick={() => setTab("bulk")}>⬆ Bulk upload</button>
-          <button className="secondary-button inline-flex items-center gap-2" onClick={onBack}><FiArrowLeft aria-hidden="true" /> Back to dashboard</button>
-        </div>
+        <button className="secondary-button inline-flex items-center gap-2" onClick={onBack}><FiArrowLeft aria-hidden="true" /> Admin Dashboard</button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="stat-card"><strong>{counts.questions}</strong><span>Main questions</span></div>
-        <div className="stat-card"><strong>{counts.pyqs}</strong><span>PYQs</span></div>
-      </div>
+      {tab === "questions" && <div className="grid gap-4 sm:grid-cols-2"><div className="stat-card"><strong>{counts.questions}</strong><span>Main questions</span></div></div>}
+      {tab === "pyqs" && <div className="grid gap-4 sm:grid-cols-2"><div className="stat-card"><strong>{counts.pyqs}</strong><span>PYQs</span></div></div>}
 
       {(error || message) && <div className={`rounded-2xl p-4 text-sm font-semibold ${error ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"}`}>{error || message}</div>}
-
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800">
-        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "questions" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("questions")}>Add question</button>
-        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "pyqs" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("pyqs")}>Add PYQ</button>
-        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "bulk" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("bulk")}>Bulk upload</button>
-        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "support" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("support")}>Public pages</button>
-        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "policies" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("policies")}>Edit policies</button>
-        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "discounts" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("discounts")}>Discount codes</button>
-        <button className={`rounded-t-xl px-4 py-3 text-sm font-bold ${tab === "feedback" ? "bg-brand-600 text-white" : "text-slate-500"}`} onClick={() => setTab("feedback")}>Feedback</button>
-      </div>
 
       {tab === "bulk" ? <BulkQuestionUpload onUploaded={loadAdminData} /> : tab === "support" ? <SupportContentEditor pages={supportPages} onSaved={loadAdminData} /> : tab === "discounts" ? <DiscountCodeManager /> : tab === "feedback" ? <FeedbackManager /> : tab !== "policies" ? (
         <form className="surface-card space-y-5" onSubmit={submitQuestion}>

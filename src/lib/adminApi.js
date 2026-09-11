@@ -8,9 +8,17 @@ async function getFreshSession() {
   const expiresAt = Number(session?.expires_at || 0) * 1000;
   if (session && expiresAt > 0 && expiresAt <= Date.now() + 60_000) {
     const refreshed = await supabase.auth.refreshSession();
-    if (!refreshed.error && refreshed.data.session) session = refreshed.data.session;
+    if (refreshed.error || !refreshed.data.session) {
+      await clearLocalAuthSession();
+      throw new Error("Your session has expired. Please sign in again.");
+    }
+    session = refreshed.data.session;
   }
   return session;
+}
+
+async function clearLocalAuthSession() {
+  await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
 }
 
 export async function authHeaders() {
@@ -23,7 +31,10 @@ export async function authHeaders() {
 export async function refreshAuthSession() {
   if (!supabase) throw new Error("Authentication is not configured.");
   const { data, error } = await supabase.auth.refreshSession();
-  if (error || !data.session) throw error || new Error("Your session has expired. Please sign in again.");
+  if (error || !data.session) {
+    await clearLocalAuthSession();
+    throw new Error("Your session has expired. Please sign in again.");
+  }
   return data.session;
 }
 

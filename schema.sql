@@ -97,6 +97,8 @@ CREATE TABLE IF NOT EXISTS support_pages (
   support_hours TEXT,
   support_cta_label TEXT,
   support_cta_url TEXT,
+  operator_name TEXT,
+  team_members TEXT NOT NULL DEFAULT '[]',
   sections TEXT NOT NULL,
   faqs TEXT NOT NULL,
   updated_at INTEGER NOT NULL
@@ -112,6 +114,7 @@ CREATE TABLE IF NOT EXISTS payment_orders (
   status TEXT NOT NULL,
   payment_id TEXT,
   discount_code TEXT,
+  plan_id TEXT NOT NULL DEFAULT 'lifetime',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -127,6 +130,8 @@ CREATE TABLE IF NOT EXISTS entitlements (
   provider_payment_id TEXT UNIQUE,
   amount INTEGER NOT NULL,
   currency TEXT NOT NULL,
+  plan_id TEXT NOT NULL DEFAULT 'lifetime',
+  expires_at INTEGER,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );

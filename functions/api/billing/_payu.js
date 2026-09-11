@@ -1,4 +1,6 @@
 import { json } from "../_shared.js";
+import { deleteKey as deleteRedisKey } from "../_redis.js";
+import { getPlan } from "./_plans.js";
 
 export async function sha512(value) {
   const digest = await crypto.subtle.digest("SHA-512", new TextEncoder().encode(value));
@@ -24,6 +26,8 @@ export async function processPayUResult(fields, env) {
 
   const order = await env.DB.prepare("SELECT * FROM payment_orders WHERE id = ?").bind(fields.txnid).first();
   if (!order || Number(fields.amount) !== Number(order.amount)) return { ok: false, error: "PayU transaction details do not match the order." };
+  const plan = getPlan(order.plan_id || "lifetime");
+  if (!plan) return { ok: false, error: "The payment order contains an invalid access plan." };
   if (order.status === "verified") return { ok: true, success: true, userId: order.user_id };
 
   const success = String(fields.status).toLowerCase() === "success";
@@ -51,7 +55,7 @@ export async function processPayUResult(fields, env) {
 
   try {
     const statements = [
-      env.DB.prepare("INSERT INTO entitlements (user_id, status, provider, provider_order_id, provider_payment_id, amount, currency, created_at, updated_at) VALUES (?, 'active', 'payu', ?, ?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET status = 'active', provider = excluded.provider, provider_order_id = excluded.provider_order_id, provider_payment_id = excluded.provider_payment_id, amount = excluded.amount, currency = excluded.currency, updated_at = excluded.updated_at").bind(order.user_id, fields.txnid, fields.mihpayid || fields.txnid, order.amount, order.currency, now, now),
+      env.DB.prepare("INSERT INTO entitlements (user_id, status, provider, provider_order_id, provider_payment_id, amount, currency, plan_id, expires_at, created_at, updated_at) VALUES (?, 'active', 'payu', ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET status = 'active', provider = excluded.provider, provider_order_id = excluded.provider_order_id, provider_payment_id = excluded.provider_payment_id, amount = excluded.amount, currency = excluded.currency, plan_id = excluded.plan_id, expires_at = CASE WHEN entitlements.expires_at IS NULL OR excluded.expires_at IS NULL THEN NULL WHEN entitlements.expires_at > excluded.created_at THEN entitlements.expires_at + (excluded.expires_at - excluded.created_at) ELSE excluded.expires_at END, updated_at = excluded.updated_at").bind(order.user_id, fields.txnid, fields.mihpayid || fields.txnid, order.amount, order.currency, plan.id, plan.durationMonths === null ? null : now + plan.durationDays * 86400000, now, now),
     ];
     if (order.discount_code) {
       statements.push(env.DB.prepare("UPDATE discount_codes SET used_count = used_count + 1, updated_at = ? WHERE code = ?").bind(now, order.discount_code));
@@ -60,6 +64,7 @@ export async function processPayUResult(fields, env) {
       env.DB.prepare("UPDATE payment_orders SET status = 'verified', updated_at = ? WHERE id = ? AND status = 'settling'").bind(now, fields.txnid),
     );
     await env.DB.batch(statements);
+    await deleteRedisKey(env, `tracepg:access:${order.user_id}`);
     return { ok: true, success: true, userId: order.user_id };
   } catch (error) {
     await env.DB.prepare(

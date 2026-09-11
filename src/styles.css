@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+.tracepg-css-cache-fix { --tracepg-css-cache-fix: 1; }
+
 @keyframes tracepg-page-enter {
   from {
     opacity: 0;

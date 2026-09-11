@@ -55,4 +55,17 @@ export const LEGAL_POLICIES = {
       ["Policy updates", "We may update this policy when our delivery process or service changes. The version published on this page is the current version."],
     ],
   },
+  cancellation: {
+    path: "/cancellation-policy",
+    label: "Cancellation Policy",
+    title: "Digital access cannot be cancelled once purchased.",
+    intro: "TracePG is a digital product. Because access and digital content are delivered electronically, orders cannot be cancelled after purchase.",
+    sections: [
+      ["No cancellation for digital products", "TracePG provides digital study tools and access is delivered electronically to your account. Since no physical product is shipped and digital access may be used immediately, purchases cannot be cancelled after payment is completed."],
+      ["Before you purchase", "Please review the product details, access terms, and applicable payment information carefully before completing your purchase. If you have questions, contact support before paying."],
+      ["Refunds and required rights", "This cancellation policy does not limit any refund eligibility described in the Refund Policy or any rights that cannot be excluded under applicable law."],
+      ["Jurisdiction", "All legal matters, disputes, or proceedings arising from or relating to TracePG and its digital products shall be subject to the jurisdiction of the courts in Bilaspur, Chhattisgarh, India."],
+      ["Policy updates", "We may update this policy when our products, payment methods, or legal obligations change. The version published on this page is the current version."],
+    ],
+  },
 };

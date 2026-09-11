@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
   const policies = result.results.map((row) => ({
     ...row,
     sections: JSON.parse(row.sections),
-    path: `/${row.slug}`,
+    path: { refund: "/refund-policy", shipping: "/shipping-policy", cancellation: "/cancellation-policy" }[row.slug] || `/${row.slug}`,
   }));
   return json(slug ? { policy: policies[0] || null } : { policies });
 }

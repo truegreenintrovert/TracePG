@@ -11,6 +11,7 @@ import {
   FiRefreshCw,
   FiShield,
   FiTruck,
+  FiXCircle,
   FiX,
 } from "react-icons/fi";
 import BrandLogo from "./BrandLogo";
@@ -26,6 +27,7 @@ const links = [
   ["terms", "/terms", "Terms of Service", FiFileText],
   ["refund", "/refund-policy", "Refund Policy", FiRefreshCw],
   ["shipping", "/shipping-policy", "Shipping Policy", FiTruck],
+  ["cancellation", "/cancellation-policy", "Cancellation Policy", FiXCircle],
 ];
 
 export default function PublicSidebar({ view, onNavigate, collapsed = false, onToggle, closeOnSelect = false, onClose }) {

@@ -1,8 +1,10 @@
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 ADMIN_EMAILS=admin@example.com
-TRACEPG_PRICE_INR=1000
 PAYU_ENV=test
 PAYU_KEY=replace_with_payu_merchant_key
 PAYU_SALT=replace_with_payu_merchant_salt
 APP_URL=https://tracepg.com
+# Optional shared API cache. Use an Upstash Redis REST URL and token.
+UPSTASH_REDIS_REST_URL= 
+UPSTASH_REDIS_REST_TOKEN=

@@ -24,7 +24,7 @@ export const SUPPORT_CONTENT = {
     label: "About Us",
     title: "Built to make postgraduate medical preparation more focused.",
     intro: "TracePG brings high-yield practice, revision, and progress tracking into one calm study workspace for medical students and doctors preparing for postgraduate entrance exams.",
-    operatorName: "Yogesh Kumar Kashyap",
+    operatorName: "",
     contactEmail: "",
     contactPhone: "",
     supportHours: "",

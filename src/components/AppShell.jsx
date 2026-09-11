@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import MobileNavigation from "./MobileNavigation";
 import ProfilePanel from "./ProfilePanel";
 import Sidebar from "./Sidebar";
+import AdminSidebar from "./AdminSidebar";
 import SiteFooter from "./SiteFooter";
 import TopBar from "./TopBar";
 import TestExitPrompt from "./TestExitPrompt";
@@ -21,9 +22,11 @@ export default function AppShell({
   onContinueTest,
   onSignOut,
   onUpgrade,
+  adminMode = false,
   children,
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [isDragging, setIsDragging] = useState(false);
@@ -32,6 +35,12 @@ export default function AppShell({
   const defaultWidth = 256;
   const sidebarProps = { view, setView, isAdmin };
   const sidebarOffset = !testRunning ? sidebarWidth : 0;
+  const NavigationSidebar = adminMode ? AdminSidebar : Sidebar;
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+  const navigateFromMobileMenu = useCallback((nextView, options) => {
+    setMobileMenuOpen(false);
+    setView(nextView, options);
+  }, [setView]);
 
   const startResizing = useCallback((event) => {
     event.preventDefault();
@@ -74,9 +83,11 @@ export default function AppShell({
         setTheme={setTheme}
         user={user}
         isAdmin={isAdmin}
+        adminMode={adminMode}
         trialActive={trialActive}
         testRunning={testRunning}
         testTimeLabel={testTimeLabel}
+        onOpenMenu={() => setMobileMenuOpen(true)}
         sidebarVisible={!testRunning}
         sidebarCollapsed={sidebarCollapsed}
         sidebarWidth={sidebarWidth}
@@ -86,7 +97,7 @@ export default function AppShell({
       />
 
       {!testRunning && <>
-        <aside style={{ width: `${sidebarOffset}px`, "--tracepg-sidebar-offset": `${sidebarOffset}px` }} className="scrollbar-invisible fixed inset-y-0 left-0 z-40 hidden overflow-x-hidden overflow-y-auto border-r border-slate-200/80 bg-white/95 py-6 shadow-xl backdrop-blur transition-[width,padding] duration-300 ease-out lg:block dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-none"><Sidebar {...sidebarProps} collapsed={sidebarCollapsed} onToggle={() => { setSidebarWidth(sidebarCollapsed ? defaultWidth : minWidth); setSidebarCollapsed((current) => !current); }} /></aside>
+        <aside style={{ width: `${sidebarOffset}px`, "--tracepg-sidebar-offset": `${sidebarOffset}px` }} className="scrollbar-invisible fixed inset-y-0 left-0 z-40 hidden overflow-x-hidden overflow-y-auto border-r border-slate-200/80 bg-white/95 py-6 shadow-xl backdrop-blur transition-[width,padding] duration-300 ease-out lg:block dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-none"><NavigationSidebar {...sidebarProps} collapsed={sidebarCollapsed} onToggle={() => { setSidebarWidth(sidebarCollapsed ? defaultWidth : minWidth); setSidebarCollapsed((current) => !current); }} /></aside>
         <SidebarResizeHandle width={sidebarWidth} isDragging={isDragging} onStartResize={startResizing} />
       </>}
       <div style={{ "--tracepg-sidebar-offset": `${sidebarOffset}px` }} className="sidebar-content-offset transition-[margin] duration-300 ease-out">
@@ -96,7 +107,7 @@ export default function AppShell({
       </div>
 
       {!testRunning && <SiteFooter />}
-      {!testRunning && <MobileNavigation open={view === "menu"} {...sidebarProps} />}
+      {!testRunning && <MobileNavigation open={mobileMenuOpen} adminMode={adminMode} {...sidebarProps} setView={navigateFromMobileMenu} view={view} onClose={closeMobileMenu} />}
       {profileOpen && <ProfilePanel user={user} onClose={() => setProfileOpen(false)} onSignOut={onSignOut} />}
       {testRunning && testExitPrompt && <TestExitPrompt onContinue={onContinueTest} />}
       {isDragging && <div className="fixed inset-0 z-50 cursor-col-resize select-none" />}

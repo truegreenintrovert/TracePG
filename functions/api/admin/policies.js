@@ -7,7 +7,11 @@ export async function onRequestGet({ request, env }) {
     "SELECT slug, label, title, intro, sections, updated_at AS updatedAt FROM legal_pages ORDER BY slug",
   ).all();
   return json({
-    policies: result.results.map((row) => ({ ...row, sections: JSON.parse(row.sections), path: `/${row.slug}` })),
+    policies: result.results.map((row) => ({
+      ...row,
+      sections: JSON.parse(row.sections),
+      path: { refund: "/refund-policy", shipping: "/shipping-policy", cancellation: "/cancellation-policy" }[row.slug] || `/${row.slug}`,
+    })),
   });
 }
 
@@ -16,7 +20,7 @@ export async function onRequestPut({ request, env }) {
   if (auth.error) return auth.error;
 
   const body = await request.json().catch(() => null);
-  if (!body || !["privacy", "terms", "refund"].includes(body.slug)) {
+  if (!body || !["privacy", "terms", "refund", "shipping", "cancellation"].includes(body.slug)) {
     return json({ error: "A valid policy slug is required." }, 400);
   }
   if (!body.title?.trim() || !body.intro?.trim() || !Array.isArray(body.sections) || !body.sections.length) {

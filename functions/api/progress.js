@@ -1,4 +1,4 @@
-import { getAuthenticatedUser, json, touchUser } from './_shared.js';
+import { getAuthenticatedUser, json } from './_shared.js';
 
 const MAX_BODY_BYTES = 900 * 1024;
 
@@ -8,7 +8,6 @@ export async function onRequestGet({ request, env }) {
   try {
     const auth = await getAuthenticatedUser(request, env);
     if (auth.error) return auth.error;
-    await touchUser(env, auth.user);
     const row = await env.DB.prepare(
       'SELECT data, updated_at AS updatedAt FROM user_progress WHERE user_id = ?',
     ).bind(auth.user.id).first();
@@ -40,7 +39,6 @@ export async function onRequestPut({ request, env }) {
     const auth = await getAuthenticatedUser(request, env);
     if (auth.error) return auth.error;
     const now = Date.now();
-    await touchUser(env, auth.user);
     await env.DB.batch([
       env.DB.prepare(
         'INSERT INTO users (id, email, display_name, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET email = excluded.email, display_name = excluded.display_name, last_seen_at = excluded.last_seen_at',

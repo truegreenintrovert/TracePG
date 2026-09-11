@@ -12,6 +12,8 @@ function parsePage(row) {
     supportHours: row.support_hours || "",
     supportCtaLabel: row.support_cta_label || "",
     supportCtaUrl: row.support_cta_url || "",
+    operatorName: row.operator_name || "",
+    teamMembers: JSON.parse(row.team_members || "[]"),
     sections: JSON.parse(row.sections || "[]"),
     faqs: JSON.parse(row.faqs || "[]"),
     updatedAt: row.updated_at,

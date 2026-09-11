@@ -1,3 +1,5 @@
+import { getJson as getRedisJson, setJson as setRedisJson } from './_redis.js';
+
 function json(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -164,29 +166,63 @@ export async function getAdminUser(request, env) {
 
 export async function hasTraceAccess(env, user) {
   if (isAdminUser(user, env)) return true;
+  const accessCacheKey = `tracepg:access:${user.id}`;
+  const cachedAccess = await getRedisJson(env, accessCacheKey);
+  if (typeof cachedAccess === 'boolean') return cachedAccess;
+
   const row = await env.DB.prepare(
-    "SELECT user_id FROM entitlements WHERE user_id = ? AND status = 'active'",
-  ).bind(user.id).first();
-  if (row) return true;
+    "SELECT user_id FROM entitlements WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > ?)",
+  ).bind(user.id, Date.now()).first();
+  if (row) {
+    await setRedisJson(env, accessCacheKey, true, 30);
+    return true;
+  }
   const trial = await env.DB.prepare(
     "SELECT trial_expires_at AS trialExpiresAt FROM trial_usage WHERE user_id = ?",
   ).bind(user.id).first();
-  return Number(trial?.trialExpiresAt || 0) > Date.now();
+  const hasAccess = Number(trial?.trialExpiresAt || 0) > Date.now();
+  await setRedisJson(env, accessCacheKey, hasAccess, 30);
+  return hasAccess;
 }
 
 export async function hasLifetimeAccess(env, user) {
   if (isAdminUser(user, env)) return true;
   const row = await env.DB.prepare(
-    "SELECT user_id FROM entitlements WHERE user_id = ? AND status = 'active'",
+    "SELECT user_id FROM entitlements WHERE user_id = ? AND status = 'active' AND expires_at IS NULL",
   ).bind(user.id).first();
   return Boolean(row);
 }
 
 export async function touchUser(env, user) {
+  if (!env.DB || !user?.id) return;
+
+  const edgeCache = globalThis.caches?.default;
+  const markerRequest = new Request(
+    `https://tracepg-user-touch.invalid/${encodeURIComponent(user.id)}`,
+  );
+  if (edgeCache) {
+    try {
+      if (await edgeCache.match(markerRequest)) return;
+    } catch {
+      // Continue with the database update if the edge cache is unavailable.
+    }
+  }
+
   const now = Date.now();
   await env.DB.prepare(
     'INSERT INTO users (id, email, display_name, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET email = excluded.email, display_name = excluded.display_name, last_seen_at = excluded.last_seen_at',
   ).bind(user.id, user.email || null, user.user_metadata?.full_name || user.user_metadata?.name || null, now, now).run();
+
+  if (edgeCache) {
+    try {
+      await edgeCache.put(
+        markerRequest,
+        new Response('1', { headers: { 'Cache-Control': 'public, max-age=600' } }),
+      );
+    } catch {
+      // The user record is already updated; cache warming is best effort.
+    }
+  }
 }
 
 export { json };

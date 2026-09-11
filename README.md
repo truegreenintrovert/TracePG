@@ -50,7 +50,7 @@ does not permanently block the account.
 
 ## Admin panel
 
-The authenticated admin panel is available at `/admin`. It can add main-bank questions, add PYQs, and edit the Product, About Us, Contact Us, Help & Support, Q&A, Privacy Policy, Terms of Service, and Refund Policy content stored in D1.
+The authenticated admin panel is available at `/admin`. It can add main-bank questions, add PYQs, edit the Product, About Us, Contact Us, Help & Support, Q&A, Privacy Policy, Terms of Service, Refund Policy, Shipping Policy, and Cancellation Policy content stored in D1. About Us also includes admin-managed operator and team-member fields.
 
 The Bulk upload tab accepts `.xlsx`, `.csv`, and text-based `.pdf` files. Spreadsheet headers should include `q, o1, o2, o3, o4, a`; use A-D for the answer column to avoid numeric-index ambiguity. PDF questions should use numbered questions followed by A-D options and an `Answer: B` style answer line. Image-only/scanned PDFs require OCR first.
 
@@ -66,7 +66,7 @@ The app entry point is `index.html`, which mounts `src/main.jsx`. The previous m
 
 ## Paid access and custom domain
 
-TracePG is configured for one-time lifetime access at ₹1,000. Each non-admin account can start three free trial tests of 20 questions each before upgrading. Administrators can manage percentage or fixed discount codes from the admin panel, including activation, expiry, and usage limits. The amount can be changed with the Pages variable `TRACEPG_PRICE_INR`. Administrators listed in `ADMIN_EMAILS` or `ADMIN_USER_IDS` are granted unlimited access without payment. The question, trial, and checkout APIs check access server-side, so the paywall and discounts are not only frontend restrictions.
+TracePG offers one-time premium access plans at ₹298 for 1 year, ₹398 for 2 years, ₹598 for 3 years, ₹698 for 5 years, or ₹1,500 for lifetime access. A 50% percentage discount code reduces these to ₹149, ₹199, ₹299, ₹349, and ₹750 respectively. Timed plans can be renewed or upgraded, while lifetime access never expires. Each non-admin account can start three free trial tests of 20 questions each before upgrading. Administrators can manage percentage or fixed discount codes from the admin panel, including activation, expiry, and usage limits. Administrators listed in `ADMIN_EMAILS` or `ADMIN_USER_IDS` are granted unlimited access without payment. The question, trial, and checkout APIs check access server-side, so the paywall and discounts are not only frontend restrictions.
 
 Add these Cloudflare Pages runtime variables/secrets before accepting payments:
 

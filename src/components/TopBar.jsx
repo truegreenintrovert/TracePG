@@ -10,19 +10,19 @@ const publicPages = [
   ["qa", "Q&A"],
 ];
 
-export default function TopBar({ setView, theme, setTheme, user, isAdmin, trialActive, testRunning, testTimeLabel, sidebarVisible, sidebarCollapsed, sidebarWidth = 256, onSignOut, onUpgrade, onOpenProfile, publicMode = false, onSignIn, backHref = "/", onBack }) {
+export default function TopBar({ setView, theme, setTheme, user, isAdmin, adminMode = false, trialActive, testRunning, testTimeLabel, onOpenMenu, sidebarVisible, sidebarCollapsed, sidebarWidth = 256, onSignOut, onUpgrade, onOpenProfile, publicMode = false, onSignIn, backHref = "/", onBack }) {
   const sidebarOffset = sidebarVisible ? sidebarWidth : 0;
   return (
     <header style={{ "--tracepg-sidebar-offset": `${sidebarOffset}px` }} className="topbar-sidebar-offset sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur transition-[margin] duration-300 ease-out dark:border-slate-800 dark:bg-slate-950/95">
       <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-2 px-3 sm:h-20 sm:gap-3 sm:px-6 lg:px-10">
         {!testRunning && (
-          <button className="icon-button h-9 w-9 shrink-0 lg:hidden sm:h-10 sm:w-10" aria-label="Open navigation" onClick={() => setView("menu")}><FiMenu size={19} /></button>
+          <button className="icon-button h-9 w-9 shrink-0 lg:hidden sm:h-10 sm:w-10" aria-label="Open navigation" onClick={onOpenMenu || (() => setView("menu"))}><FiMenu size={19} /></button>
         )}
 
         <BrandLogo className={`min-w-0 flex-1 ${sidebarVisible ? "lg:hidden" : ""}`} iconClassName="h-9 w-9 sm:h-12 sm:w-12" wordmarkClassName="h-5 w-auto max-w-[98px] sm:h-8 sm:max-w-[180px]" />
 
-        {!testRunning && isAdmin && (
-          <button className="ml-2 hidden items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-brand-300 hover:text-brand-600 sm:flex dark:border-slate-700 dark:text-slate-200" onClick={() => setView("admin")}><FiActivity size={16} /> Admin</button>
+        {!testRunning && isAdmin && !adminMode && (
+          <button className="ml-2 hidden items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-brand-300 hover:text-brand-600 sm:flex dark:border-slate-700 dark:text-slate-200" onClick={() => setView("admin")}><FiActivity size={16} /> Admin Dashboard</button>
         )}
 
         <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
@@ -107,7 +107,7 @@ function ProfileMenu({ user, setView, trialActive, onUpgrade, onOpenProfile, onS
           </div>
 
           <button className="profile-menu-item mt-2 flex items-center gap-3" role="menuitem" onClick={() => { closeMenu(); onOpenProfile(); }}><FiUser size={17} aria-hidden="true" /> Profile</button>
-          {trialActive && <button className="profile-menu-item flex items-center gap-3 text-brand-600" role="menuitem" onClick={() => { closeMenu(); onUpgrade(); }}><FiZap size={17} aria-hidden="true" /> Upgrade to lifetime</button>}
+          {trialActive && <button className="profile-menu-item flex items-center gap-3 text-brand-600" role="menuitem" onClick={() => { closeMenu(); onUpgrade(); }}><FiZap size={17} aria-hidden="true" /> Choose a premium plan</button>}
           <button className="profile-menu-item flex items-center justify-between" role="menuitem" aria-expanded={pagesOpen} onClick={() => setPagesOpen((current) => !current)}>
             <span className="flex items-center gap-3"><FiGlobe size={17} aria-hidden="true" /> Pages</span>
             {pagesOpen ? <FiChevronUp size={16} aria-hidden="true" /> : <FiChevronDown size={16} aria-hidden="true" />}

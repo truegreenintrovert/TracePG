@@ -3,7 +3,7 @@ import SiteFooter from "../components/SiteFooter";
 import SEO, { SITE_URL } from "../components/SEO";
 import PublicHeader from "../components/PublicHeader";
 import PublicSidebar from "../components/PublicSidebar";
-import { FiArrowRight, FiBarChart2, FiBookOpen, FiClock } from "react-icons/fi";
+import { FiArrowRight, FiBarChart2, FiBookOpen, FiClock, FiTag } from "react-icons/fi";
 
 export default function PublicHome({ onSignIn }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -21,6 +21,13 @@ export default function PublicHome({ onSignIn }) {
       />
       <PublicHeader onSignIn={onSignIn} onMenu={() => setSidebarOpen(true)} />
       {sidebarOpen && <div className="fixed inset-0 z-[60] lg:hidden"><button className="motion-backdrop absolute inset-0 h-full w-full bg-slate-950/40" aria-label="Close public navigation" onClick={() => setSidebarOpen(false)} /><aside className="motion-drawer scrollbar-invisible absolute inset-y-0 left-0 w-72 overflow-y-auto border-r border-slate-200 bg-white px-4 py-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950"><PublicSidebar view="home" onNavigate={(nextView) => { setSidebarOpen(false); window.location.assign({ home: "/", product: "/product", about: "/about-us", contact: "/contact-us", help: "/help-support", qa: "/qa" }[nextView] || "/"); }} closeOnSelect onClose={() => setSidebarOpen(false)} /></aside></div>}
+
+      <div className="border-y border-amber-200 bg-amber-50 dark:border-amber-900/70 dark:bg-amber-950/30">
+        <div className="mx-auto flex max-w-[1240px] items-center justify-center gap-3 px-4 py-3 text-center text-sm text-amber-950 sm:px-6 lg:px-10 dark:text-amber-100">
+          <FiTag className="shrink-0 text-amber-700 dark:text-amber-200" aria-hidden="true" />
+          <p><span className="font-black">Early-access offers:</span> Use <span className="font-black">FLAT50</span> for the first 100 users · Use <span className="font-black">FIRST10</span> for the first 10 users.</p>
+        </div>
+      </div>
 
       <main>
         <section className="mx-auto grid max-w-[1240px] gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:px-10 lg:py-28">

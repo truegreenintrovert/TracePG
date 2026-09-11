@@ -15,6 +15,7 @@ const policyLinks = [
   ["/terms", "Terms of Service"],
   ["/refund-policy", "Refund Policy"],
   ["/shipping-policy", "Shipping Policy"],
+  ["/cancellation-policy", "Cancellation Policy"],
 ];
 
 export default function PublicHeader({ onSignIn, onMenu }) {

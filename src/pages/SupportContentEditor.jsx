@@ -4,6 +4,7 @@ import { adminFetch } from "../lib/adminApi";
 
 const blankSection = ["New section", "Add the guidance text here."];
 const blankFaq = { category: "General", question: "", answer: "" };
+const blankTeamMember = { name: "", qualification: "", image: "/trace-logo-square.png", summary: "" };
 const pageOptions = [
   ["product", "Product"],
   ["about", "About Us"],
@@ -27,6 +28,7 @@ export default function SupportContentEditor({ pages, onSaved }) {
   const update = (changes) => setDraft((current) => ({ ...current, ...changes }));
   const updateSection = (index, value, part) => update({ sections: draft.sections.map((section, sectionIndex) => sectionIndex === index ? section.map((item, itemIndex) => itemIndex === part ? value : item) : section) });
   const updateFaq = (index, changes) => update({ faqs: draft.faqs.map((faq, faqIndex) => faqIndex === index ? { ...faq, ...changes } : faq) });
+  const updateTeamMember = (index, changes) => update({ teamMembers: (draft.teamMembers || []).map((member, memberIndex) => memberIndex === index ? { ...member, ...changes } : member) });
 
   const save = async (event) => {
     event.preventDefault();
@@ -61,6 +63,25 @@ export default function SupportContentEditor({ pages, onSaved }) {
         <Field label="Page title" value={draft.title} onChange={(value) => update({ title: value })} required />
       </div>
       <label className="block text-sm font-bold">Introduction<textarea className="field mt-2 min-h-24" value={draft.intro} onChange={(event) => update({ intro: event.target.value })} required /></label>
+
+      {slug === "about" && <div>
+        <h3 className="text-lg font-black">About Us ownership and team</h3>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">These details appear on the public About Us page.</p>
+        <Field label="Website operator" value={draft.operatorName} onChange={(value) => update({ operatorName: value })} />
+        <div className="mt-4 space-y-4">
+          {(draft.teamMembers || []).map((member, index) => <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-700" key={index}>
+            <div className="flex items-start gap-3"><div className="min-w-0 flex-1 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Name" value={member.name} onChange={(value) => updateTeamMember(index, { name: value })} required />
+                <Field label="Qualification / role" value={member.qualification} onChange={(value) => updateTeamMember(index, { qualification: value })} required />
+              </div>
+              <Field label="Profile image URL" value={member.image} onChange={(value) => updateTeamMember(index, { image: value })} required />
+              <label className="block text-sm font-bold">Summary<textarea className="field mt-2 min-h-24" value={member.summary} onChange={(event) => updateTeamMember(index, { summary: event.target.value })} required /></label>
+            </div><button type="button" className="text-sm font-bold text-rose-600" onClick={() => update({ teamMembers: (draft.teamMembers || []).filter((_, memberIndex) => memberIndex !== index) })}>Remove</button></div>
+          </div>)}
+        </div>
+        <button type="button" className="secondary-button mt-4" onClick={() => update({ teamMembers: [...(draft.teamMembers || []), { ...blankTeamMember }] })}>+ Add team member</button>
+      </div>}
 
       <div>
         <h3 className="text-lg font-black">Contact and call-to-action details</h3>

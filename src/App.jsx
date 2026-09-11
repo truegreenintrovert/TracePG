@@ -12,6 +12,8 @@ import TestRunner from "./pages/TestRunner";
 import WrongQuestions from "./pages/WrongQuestions";
 import LegalPage, { getLegalPage } from "./pages/LegalPage";
 import AdminPanel from "./pages/AdminPanel";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
 import TestResult from "./pages/TestResult";
 import TestReview from "./pages/TestReview";
 import FeedbackPage from "./pages/FeedbackPage";
@@ -33,6 +35,7 @@ import AuthScreen, { ConfirmEmailScreen, ResetPasswordScreen } from "./component
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { releaseTraceSession } from "./lib/session";
 import { getSupportPage } from "./data/supportContent";
+import { BILLING_PLANS } from "./data/billingPlans";
 import { authHeaders, refreshAuthSession } from "./lib/adminApi";
 import { normalizeSubject } from "./lib/subjects";
 import { FiActivity, FiAlertTriangle, FiLock } from "react-icons/fi";
@@ -56,7 +59,25 @@ const VIEW_PATHS = {
   result: "/result",
   review: "/review",
   admin: "/admin",
+  "admin-users": "/admin/users",
+  "admin-questions": "/admin/questions",
+  "admin-pyqs": "/admin/pyqs",
+  "admin-bulk": "/admin/bulk-upload",
+  "admin-support": "/admin/public-pages",
+  "admin-policies": "/admin/policies",
+  "admin-discounts": "/admin/discounts",
+  "admin-feedback": "/admin/feedback",
   signIn: "/sign-in",
+};
+
+const ADMIN_TOOL_TABS = {
+  "admin-questions": "questions",
+  "admin-pyqs": "pyqs",
+  "admin-bulk": "bulk",
+  "admin-support": "support",
+  "admin-policies": "policies",
+  "admin-discounts": "discounts",
+  "admin-feedback": "feedback",
 };
 
 function viewFromPath(pathname) {
@@ -89,7 +110,7 @@ export default function App() {
   const [adminStatus, setAdminStatus] = useState("checking");
   const [accessLoading, setAccessLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
-  const [accessInfo, setAccessInfo] = useState({ priceInr: 1000, currency: "INR" });
+  const [accessInfo, setAccessInfo] = useState({ plans: BILLING_PLANS, currency: "INR" });
   const [accessError, setAccessError] = useState("");
   const [authNotice, setAuthNotice] = useState("");
   const [deviceConflict, setDeviceConflict] = useState("");
@@ -271,7 +292,7 @@ export default function App() {
   const signOut = async () => {
     setDeviceConflict("");
     await releaseTraceSession();
-    await supabase?.auth.signOut();
+    await supabase?.auth.signOut({ scope: "local" });
   };
 
   const replaceDeviceSession = async () => {
@@ -634,17 +655,19 @@ export default function App() {
       );
     if (activeTest)
       return <TestRunner key={activeTest.id} test={activeTest} onSubmit={submitTest} onPause={pauseTest} onTimeChange={setTestTimeLabel} />;
+    if (view.startsWith("admin") && adminStatus === "checking")
+      return <div className="grid min-h-[60vh] place-items-center text-sm font-semibold text-slate-500">Checking administrator access…</div>;
+    if (view.startsWith("admin") && !isAdmin)
+      return <div className="surface-card mx-auto mt-10 max-w-lg text-center"><FiLock className="mx-auto text-4xl text-slate-400" aria-hidden="true" /><h2 className="mt-3 text-xl font-black">Admin access required</h2><p className="mt-2 text-sm text-slate-500">Your account is not configured as a TracePG administrator.</p><p className="mt-3 break-all text-xs font-semibold text-slate-400">Signed in as: {user?.email || "unknown email"}</p><button className="primary-button mt-5" onClick={() => setView("home")}>Back to dashboard</button></div>;
+    if (view === "admin") return <AdminDashboard onNavigate={setView} />;
+    if (view === "admin-users") return <AdminUsers onBack={() => setView("admin")} />;
+    if (ADMIN_TOOL_TABS[view]) return <AdminPanel initialTab={ADMIN_TOOL_TABS[view]} onBack={() => setView("admin")} />;
     if (upgradeOpen && hasAccess && !isAdmin)
-      return <PremiumAccessScreen user={user} priceInr={accessInfo.priceInr || 1000} trialActive={Boolean(accessInfo.trialActive)} trialDaysRemaining={accessInfo.trialDaysRemaining || Math.max(1, Math.ceil((Number(accessInfo.trialExpiresAt || 0) - Date.now()) / 86400000))} onClose={() => setUpgradeOpen(false)} onUnlocked={() => { setUpgradeOpen(false); setHasAccess(true); setAccessError(""); }} />;
+      return <PremiumAccessScreen user={user} plans={accessInfo.plans} trialActive={Boolean(accessInfo.trialActive)} trialDaysRemaining={accessInfo.trialDaysRemaining || Math.max(1, Math.ceil((Number(accessInfo.trialExpiresAt || 0) - Date.now()) / 86400000))} onClose={() => setUpgradeOpen(false)} onUnlocked={() => { setUpgradeOpen(false); setHasAccess(true); setAccessError(""); }} />;
     if (view === "result" && lastResult)
       return <TestResult result={lastResult} onReview={(result) => { setLastResult(result); setView("review"); }} onNavigate={setView} />;
     if (view === "review" && lastResult)
       return <TestReview result={lastResult} state={activeState} onSaveNote={saveNote} onBack={() => setView("result", { replace: true })} />;
-    if (view === "admin" && adminStatus === "checking")
-      return <div className="grid min-h-[60vh] place-items-center text-sm font-semibold text-slate-500">Checking administrator access…</div>;
-    if (view === "admin" && !isAdmin)
-      return <div className="surface-card mx-auto mt-10 max-w-lg text-center"><FiLock className="mx-auto text-4xl text-slate-400" aria-hidden="true" /><h2 className="mt-3 text-xl font-black">Admin access required</h2><p className="mt-2 text-sm text-slate-500">Your account is not configured as a TracePG administrator.</p><p className="mt-3 break-all text-xs font-semibold text-slate-400">Signed in as: {user?.email || "unknown email"}</p><button className="primary-button mt-5" onClick={() => setView("home")}>Back to dashboard</button></div>;
-    if (view === "admin") return <AdminPanel onBack={() => setView("home")} />;
     if (view === "product") return <ProductPage onNavigate={setView} />;
     if (view === "about") return <SupportPage page={getSupportPage("/about-us")} onNavigate={setView} />;
     if (view === "contact") return <SupportPage page={getSupportPage("/contact-us")} onNavigate={setView} />;
@@ -654,7 +677,7 @@ export default function App() {
     if (accessLoading)
       return <div className="grid min-h-[60vh] place-items-center text-sm font-semibold text-slate-500">Checking TracePG access…</div>;
     if (!hasAccess && !isAdmin)
-      return <PremiumAccessScreen user={user} priceInr={accessInfo.priceInr || 1000} trialAvailable={accessInfo.trialAvailable} error={accessError} onTrialStarted={(trial) => { setAccessInfo((current) => ({ ...current, ...trial, trialAvailable: false, trialDaysRemaining: Math.max(1, Math.ceil((Number(trial.trialExpiresAt || 0) - Date.now()) / 86400000)) })); setHasAccess(true); setAccessError(""); setView("home", { replace: true }); }} onUnlocked={() => { setHasAccess(true); setAccessError(""); setView("home", { replace: true }); }} />;
+      return <PremiumAccessScreen user={user} plans={accessInfo.plans} trialAvailable={accessInfo.trialAvailable} error={accessError} onTrialStarted={(trial) => { setAccessInfo((current) => ({ ...current, ...trial, trialAvailable: false, trialDaysRemaining: Math.max(1, Math.ceil((Number(trial.trialExpiresAt || 0) - Date.now()) / 86400000)) })); setHasAccess(true); setAccessError(""); setView("home", { replace: true }); }} onUnlocked={() => { setHasAccess(true); setAccessError(""); setView("home", { replace: true }); }} />;
     const props = {
       questions,
       state: activeState,
@@ -692,6 +715,7 @@ export default function App() {
       setTheme={setTheme}
       user={user}
       isAdmin={isAdmin}
+      adminMode={isAdmin && view.startsWith("admin")}
       trialActive={Boolean(accessInfo.trialActive)}
       testRunning={Boolean(activeTest)}
       testTimeLabel={testTimeLabel}
